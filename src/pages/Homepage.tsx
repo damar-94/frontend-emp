@@ -1,14 +1,14 @@
-import Navbar from "../components/Navbar"
+import { HeroSection } from "@/components/HeroSection"
+import Navbar from "@/components/Navbar"
 
-function Homepage() {
-return(
-    <div className="container mx-auto max-w-7xl">
-        <Navbar/>
-        <p>
-            ini homepage
-        </p>
-    </div>
-)
+function Homepage () {
+    return (
+        <div>
+            <Navbar/>
+            <HeroSection/>
+            <p> Homepage</p>
+        </div>
+    )
 }
 
 export default Homepage
