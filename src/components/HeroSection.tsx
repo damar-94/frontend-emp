@@ -50,7 +50,6 @@ export function HeroSection() {
   const [current, setCurrent] = React.useState(0);
   const [count, setCount] = React.useState(0);
 
-  // Sync dot indicators with Embla state
   React.useEffect(() => {
     if (!api) return;
 
@@ -79,7 +78,6 @@ export function HeroSection() {
                 href={slide.link}
                 className="relative block w-full aspect-[16/9] sm:aspect-[21/9] md:aspect-[24/8] max-h-[380px] overflow-hidden bg-slate-950"
               >
-                {/* Background Image with Dark Vignette Gradient */}
                 <img
                   src={slide.imageUrl}
                   alt={slide.title}
@@ -87,7 +85,6 @@ export function HeroSection() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
 
-                {/* Banner Text Overlays */}
                 <div className="absolute inset-0 p-6 sm:p-10 flex flex-col justify-between">
                   <div className="max-w-xl">
                     <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white drop-shadow-md">
@@ -98,7 +95,6 @@ export function HeroSection() {
                     </p>
                   </div>
 
-                  {/* Loket-Style Bottom Action Pill */}
                   <div className="self-start">
                     <div className="inline-flex items-center gap-2 bg-white/95 hover:bg-white text-slate-900 px-3.5 py-1.5 rounded-full text-xs font-semibold shadow-md backdrop-blur transition-all">
                       <span>{slide.tagline}</span>
@@ -114,11 +110,9 @@ export function HeroSection() {
           ))}
         </CarouselContent>
 
-        {/* Circular Nav Buttons (Loket uses round white buttons on the edges) */}
         <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 h-9 w-9 bg-white/90 hover:bg-white text-slate-800 border-none shadow-md z-10" />
         <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 h-9 w-9 bg-white/90 hover:bg-white text-slate-800 border-none shadow-md z-10" />
 
-        {/* Bottom Dot Indicators */}
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
           {Array.from({ length: count }).map((_, index) => (
             <button
