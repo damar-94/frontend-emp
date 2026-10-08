@@ -1,19 +1,20 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import useLogin from "@/hooks/API/auth/useLogin";
+import { loginSchema, type LoginSchema } from "@/schemas_2/userAuth";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 import { Link } from "react-router";
 
 const LoginPage = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const { register, handleSubmit, formState } = useForm<LoginSchema>({
+    resolver: zodResolver(loginSchema),
+  });
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const { mutate, isPending } = useLogin();
 
-    console.log({
-      email,
-      password,
-    });
+  const handleLogin = async (values: LoginSchema) => {
+    mutate(values);
   };
 
   return (
@@ -23,7 +24,7 @@ const LoginPage = () => {
         backgroundImage: "url('/bg-login-page.jpg')",
       }}
     >
-<div className="w-full max-w-md rounded-[3rem_1.5rem_3rem_1.5rem] bg-white/95 p-8 shadow-xl backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-[3rem_1.5rem_3rem_1.5rem] bg-white/95 p-8 shadow-xl backdrop-blur-sm">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold">
             <span className="text-gray-900">Let’s get the </span>
@@ -38,7 +39,7 @@ const LoginPage = () => {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(handleLogin)} className="space-y-4">
           {/* Email */}
           <div className="space-y-2">
             <label
@@ -51,11 +52,15 @@ const LoginPage = () => {
             <Input
               id="email"
               type="email"
+              {...register("email")}
               placeholder="iga@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               className="focus-visible:ring-pink-600"
             />
+            {formState.errors.email && (
+              <p className="text-red-500 text-sm">
+                {formState.errors.email.message}
+              </p>
+            )}
           </div>
 
           {/* Password */}
@@ -70,19 +75,24 @@ const LoginPage = () => {
             <Input
               id="password"
               type="password"
+              {...register("password")}
               placeholder="•••••••••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               className="focus-visible:ring-pink-600"
             />
+            {formState.errors.password && (
+              <p className="text-red-500 text-sm">
+                {formState.errors.password.message}
+              </p>
+            )}
           </div>
 
           {/* Login Button */}
           <Button
             type="submit"
+            disabled={isPending}
             className="w-full bg-pink-600 text-white hover:bg-pink-700"
           >
-            Login
+            {isPending ? "Loading" : "Submit"}
           </Button>
         </form>
 
