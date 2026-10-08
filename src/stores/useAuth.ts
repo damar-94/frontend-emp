@@ -6,7 +6,9 @@ interface UserAuth {
   name: string;
   email: string;
   role: string;
+  points: string;
   profilePicture: string | null;
+  accessToken: string;
 }
 
 type Store = {
