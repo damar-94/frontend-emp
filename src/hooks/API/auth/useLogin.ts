@@ -24,7 +24,9 @@ function useLogin() {
         name: data.user.name,
         email: data.user.email,
         role: data.user.role,
+        points: data.user.points,
         profilePicture: data.user.profilePicture,
+        accessToken: data.accessToken,
       });
 
       toast.success("Login Success!");
