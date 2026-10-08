@@ -1,46 +1,24 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { axiosInstance } from "@/lib/axios";
+import useRegister from "@/hooks/API/auth/useRegister";
 import {
   registerUserSchema,
   type RegisterUserSchema,
 } from "@/schemas_2/userAuth";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router";
 import { Link } from "react-router";
 
 function RegisterPage() {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
   const { register, handleSubmit, formState } = useForm<RegisterUserSchema>({
     resolver: zodResolver(registerUserSchema),
   });
 
-  const navigate = useNavigate();
+  const {mutate, isPending} = useRegister();
 
   const handleRegister = async (values: RegisterUserSchema) => {
-    setIsLoading(true);
-    try {
-      await axiosInstance.post("/auth/register", {
-        name: values.name,
-        email: values.email,
-        password: values.password,
-        role: values.role,
-        referralCode: values.referralCode,
-      });
-
-      alert("Register Success!");
-
-      navigate("/login");
-    } catch (error) {
-      console.log(error);
-      alert("Register Failed!");
-    } finally {
-      setIsLoading(false);
-    }
+    mutate(values)
   };
 
   return (
@@ -71,10 +49,7 @@ function RegisterPage() {
         <form onSubmit={handleSubmit(handleRegister)} className="space-y-4">
           {/* Name */}
           <div className="space-y-2">
-            <Label
-              htmlFor="name"
-              className="text-sm font-medium text-gray-700"
-            >
+            <Label htmlFor="name" className="text-sm font-medium text-gray-700">
               Name
             </Label>
 
@@ -143,10 +118,7 @@ function RegisterPage() {
 
           {/* Role */}
           <div className="space-y-2">
-            <Label
-              htmlFor="role"
-              className="text-sm font-medium text-gray-700"
-            >
+            <Label htmlFor="role" className="text-sm font-medium text-gray-700">
               Role
             </Label>
 
@@ -181,10 +153,10 @@ function RegisterPage() {
           {/* Register Button */}
           <Button
             type="submit"
-            disabled={isLoading}
+            disabled={isPending}
             className="w-full bg-pink-600 text-white hover:bg-pink-700"
           >
-            {isLoading ? "Loading" : "Register"}
+            {isPending ? "Loading" : "Register"}
           </Button>
         </form>
 
