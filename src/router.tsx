@@ -4,6 +4,7 @@ import LoginPage from "./pages/LoginPage";
 import ProfilePage from "./pages/ProfilePage";
 import RegisterPage from "./pages/RegisterPage";
 import { guestLoader } from "./loaders/guestLoader";
+import { CreateEventPage } from "./pages/CreateEventPage";
 
 export const router = createBrowserRouter([
   {
@@ -23,5 +24,9 @@ export const router = createBrowserRouter([
   {
     path: "/profile",
     element: <ProfilePage />,
+  },
+  {
+    path: "/event-creation",
+    element: <CreateEventPage/>
   },
 ]);

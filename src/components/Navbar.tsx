@@ -75,7 +75,7 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
                         onSelectCategory?.(cat);
                         setIsCategoryOpen(false);
                       }}
-                      className="w-full text-left px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-700 transition"
+                      className="w-full text-left px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-[#f4917b] transition"
                     >
                       {cat}
                     </button>
@@ -104,14 +104,14 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
                 <X className="w-4 h-4" />
               </button>
             ) : null}
-            <Search className="w-5 h-5 text-slate-500 shrink-0 cursor-pointer hover:text-blue-600 transition" />
+            <Search className="w-5 h-5 text-slate-500 shrink-0 cursor-pointer hover:text-[#f4917b] transition" />
           </div>
         </div>
 
         <div className="flex items-center gap-3 sm:gap-4 shrink-0">
           
           <a
-            href="/partnership"
+            href="/event-creation"
             className="hidden lg:flex items-center gap-2 text-slate-700 hover:text-blue-900 font-semibold text-xs sm:text-sm transition"
           >
             <span>Kerjasama dengan Kami</span>
@@ -158,7 +158,6 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
             href="/partnership"
             className="flex items-center gap-2 py-2 text-sm font-medium text-slate-700"
           >
-            <Sparkles className="w-4 h-4 text-blue-900" />
             Kerjasama dengan Kami
           </a>
           <div className="pt-2 border-t border-slate-100">
@@ -171,7 +170,7 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
                     onSelectCategory?.(c);
                     setMobileMenuOpen(false);
                   }}
-                  className="text-left text-xs text-slate-600 hover:text-blue-600 py-1"
+                  className="text-left text-xs text-slate-600 hover:text-[#f4917b] py-1"
                 >
                   {c}
                 </button>
