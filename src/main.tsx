@@ -1,39 +1,19 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import "./index.css";
-import { createBrowserRouter } from "react-router";
 import { RouterProvider } from "react-router/dom";
-import Homepage from "./pages/Homepage";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import ProfilePage from "./pages/ProfilePage";
-import { CreateEventPage } from "./pages/CreateEventPage";
+import "./index.css";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { router } from "./router";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <Homepage />,
-  },
-  {
-    path: "/login",
-    element: <LoginPage />,
-  },
-  {
-    path: "/register",
-    element: <RegisterPage />,
-  },
-  {
-    path: "/profile",
-    element: <ProfilePage />,
-  },
-  {
-    path: "/event-creation",
-    element: <CreateEventPage/>
-  },
-]);
+const queryClient = new QueryClient();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+      <ToastContainer />
+    </QueryClientProvider>
   </StrictMode>,
 );
