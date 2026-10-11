@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router"; // Gunakan react-router
 import { Search, MapPin, Calendar, AlertCircle } from "lucide-react";
 import { useDebounce } from "../hooks/useDebounce";
 import { axiosInstance } from "@/lib/axios";
@@ -21,7 +22,6 @@ export const EventBrowsingPage: React.FC = () => {
   const [events, setEvents] = useState<EventModel[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 1. Baca URL parameter secara langsung saat state pertama kali dibuat
   const [categoryId, setCategoryId] = useState<number>(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -33,7 +33,7 @@ export const EventBrowsingPage: React.FC = () => {
         if (matchedCategory) return matchedCategory.id;
       }
     }
-    return 0; // Default ke "All Categories" jika tidak ada parameter
+    return 0;
   });
 
   const debouncedSearch = useDebounce(search, 350);
@@ -217,7 +217,7 @@ export const EventBrowsingPage: React.FC = () => {
                       </span>
                     </div>
                   </div>
-                </a>
+                </Link>
               );
             })}
           </div>
