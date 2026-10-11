@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router"; // Gunakan react-router
 import { Search, MapPin, Calendar, AlertCircle } from "lucide-react";
 import { useDebounce } from "../hooks/useDebounce";
 import { axiosInstance } from "@/lib/axios";
@@ -21,7 +22,6 @@ export const EventBrowsingPage: React.FC = () => {
   const [events, setEvents] = useState<EventModel[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 1. Baca URL parameter secara langsung saat state pertama kali dibuat
   const [categoryId, setCategoryId] = useState<number>(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -33,12 +33,11 @@ export const EventBrowsingPage: React.FC = () => {
         if (matchedCategory) return matchedCategory.id;
       }
     }
-    return 0; // Default ke "All Categories" jika tidak ada parameter
+    return 0;
   });
 
   const debouncedSearch = useDebounce(search, 350);
 
-  // 2. Fetch events otomatis akan berjalan dengan categoryId yang benar
   useEffect(() => {
     const fetchEvents = async () => {
       setLoading(true);
@@ -78,7 +77,6 @@ export const EventBrowsingPage: React.FC = () => {
     }).format(val);
   };
 
-  // 3. Handler untuk transisi kategori instan dari Navbar
   const handleCategorySelect = (categoryName: string) => {
     const matchedCategory = CATEGORIES.find(
       (c) => c.name.toLowerCase() === categoryName.toLowerCase()
@@ -86,12 +84,10 @@ export const EventBrowsingPage: React.FC = () => {
     
     if (matchedCategory) {
       setCategoryId(matchedCategory.id);
-      // Update URL di address bar tanpa me-reload halaman
       window.history.pushState({}, "", `/events?category=${encodeURIComponent(categoryName)}`);
     }
   };
 
-  // Update kategori juga saat "Category Pills" diklik
   const handlePillClick = (id: number, name: string) => {
     setCategoryId(id);
     window.history.pushState({}, "", `/events?category=${encodeURIComponent(name)}`);
@@ -99,7 +95,6 @@ export const EventBrowsingPage: React.FC = () => {
 
   return (
     <div>
-      {/* Sambungkan Navbar dengan handler */}
       <Navbar onSelectCategory={handleCategorySelect} />
       
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -161,9 +156,9 @@ export const EventBrowsingPage: React.FC = () => {
                 : 0;
 
               return (
-                <a
+                <Link
                   key={event.id}
-                  href={`/events/${event.id}`}
+                  to={`/events/${event.id}`} // Ganti href jadi to
                   className="group flex flex-col bg-white border border-[#f4917b] rounded-xl overflow-hidden hover:shadow-md transition"
                 >
                   <div className="relative aspect-[16/9] w-full bg-slate-100 overflow-hidden">
@@ -217,7 +212,7 @@ export const EventBrowsingPage: React.FC = () => {
                       </span>
                     </div>
                   </div>
-                </a>
+                </Link>
               );
             })}
           </div>
