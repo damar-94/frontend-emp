@@ -161,9 +161,9 @@ export const EventBrowsingPage: React.FC = () => {
                 : 0;
 
               return (
-                <a
+                <Link
                   key={event.id}
-                  href={`/events/${event.id}`}
+                  to={`/events/${event.id}`}
                   className="group flex flex-col bg-white border border-[#f4917b] rounded-xl overflow-hidden hover:shadow-md transition"
                 >
                   <div className="relative aspect-[16/9] w-full bg-slate-100 overflow-hidden">

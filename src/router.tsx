@@ -7,6 +7,7 @@ import { guestLoader } from "./loaders/guestLoader";
 import { CreateEventPage } from "./pages/CreateEventPage";
 import { EventBrowsingPage } from "./pages/EventBrowsingPage";
 import { EventDetailPage } from "./pages/EventDetailPage";
+import { OrganizerRoute } from "./components/OrganizerRoute";
 
 export const router = createBrowserRouter([
   {
@@ -29,14 +30,18 @@ export const router = createBrowserRouter([
   },
   {
     path: "/event-creation",
-    element: <CreateEventPage/>
+    element: (
+      <OrganizerRoute>
+        <CreateEventPage />
+      </OrganizerRoute>
+    ),
   },
   {
     path: "/events",
-    element: <EventBrowsingPage/>
+    element: <EventBrowsingPage />,
   },
   {
     path: "/events/:id",
-    element: <EventDetailPage/>
+    element: <EventDetailPage />,
   },
 ]);
