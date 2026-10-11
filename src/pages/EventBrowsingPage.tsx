@@ -38,6 +38,7 @@ export const EventBrowsingPage: React.FC = () => {
 
   const debouncedSearch = useDebounce(search, 350);
 
+  // 2. Fetch events otomatis akan berjalan dengan categoryId yang benar
   useEffect(() => {
     const fetchEvents = async () => {
       setLoading(true);
@@ -77,6 +78,7 @@ export const EventBrowsingPage: React.FC = () => {
     }).format(val);
   };
 
+  // 3. Handler untuk transisi kategori instan dari Navbar
   const handleCategorySelect = (categoryName: string) => {
     const matchedCategory = CATEGORIES.find(
       (c) => c.name.toLowerCase() === categoryName.toLowerCase()
@@ -84,10 +86,12 @@ export const EventBrowsingPage: React.FC = () => {
     
     if (matchedCategory) {
       setCategoryId(matchedCategory.id);
+      // Update URL di address bar tanpa me-reload halaman
       window.history.pushState({}, "", `/events?category=${encodeURIComponent(categoryName)}`);
     }
   };
 
+  // Update kategori juga saat "Category Pills" diklik
   const handlePillClick = (id: number, name: string) => {
     setCategoryId(id);
     window.history.pushState({}, "", `/events?category=${encodeURIComponent(name)}`);
@@ -95,6 +99,7 @@ export const EventBrowsingPage: React.FC = () => {
 
   return (
     <div>
+      {/* Sambungkan Navbar dengan handler */}
       <Navbar onSelectCategory={handleCategorySelect} />
       
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -156,9 +161,9 @@ export const EventBrowsingPage: React.FC = () => {
                 : 0;
 
               return (
-                <Link
+                <a
                   key={event.id}
-                  to={`/events/${event.id}`} // Ganti href jadi to
+                  href={`/events/${event.id}`}
                   className="group flex flex-col bg-white border border-[#f4917b] rounded-xl overflow-hidden hover:shadow-md transition"
                 >
                   <div className="relative aspect-[16/9] w-full bg-slate-100 overflow-hidden">
