@@ -3,12 +3,14 @@ import {
   Menu,
   Search,
   UserCircle2,
+  LogOut,
   X,
   Loader2
-} from "lucide-react";
+} from  "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { useDebounce } from "../hooks/useDebounce";
 import { axiosInstance } from "@/lib/axios";
+import { useAuth } from "@/stores/useAuth";
 
 interface NavbarProps {
   onSearch?: (query: string) => void;
@@ -19,6 +21,10 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Ambil data user & fungsi logout dari store auth
+  const { user, logout } = useAuth() as { user: any; logout?: () => void };
+  const isLoggedIn = Boolean(user && (user.accessToken || user.id));
   
   // Search Suggestions State
   const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -56,7 +62,6 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
         setIsSearching(true);
         try {
           const res = await axiosInstance.get('/events', { params: { search: debouncedSearch } });
-          // Limit to 5 suggestions
           setSuggestions(res.data.data.slice(0, 5));
         } catch (error) {
           console.error("Failed to fetch suggestions", error);
@@ -87,6 +92,15 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
   const clearSearch = () => {
     setSearchTerm("");
     setSuggestions([]);
+  };
+
+  const handleAuthAction = (e: React.MouseEvent) => {
+    if (isLoggedIn) {
+      e.preventDefault();
+      if (logout) {
+        logout();
+      }
+    }
   };
 
   // Reusable Suggestions Dropdown Component
@@ -182,7 +196,7 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
 
         {/* Desktop Search Bar */}
         <div ref={searchContainerRef} className="flex-1 max-w-2xl hidden sm:block relative">
-          <div className="relative flex items-center bg-slate-100/90 rounded-xl px-4 py-2.5 transition focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-600/20  border border-[#f4917b]">
+          <div className="relative flex items-center bg-slate-100/90 rounded-xl px-4 py-2.5 transition focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-600/20 border border-[#f4917b]">
             <input
               type="text"
               value={searchTerm}
@@ -210,13 +224,27 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
             href="/event-creation"
             className="hidden lg:flex items-center gap-2 text-slate-700 hover:text-blue-900 font-semibold text-xs sm:text-sm transition"
           >
-            <span>Partner with Us</span>
+            <span>Create Event</span>
           </a>
 
-          <button className="flex items-center gap-2 bg-[#f4917b] hover:bg-[#ffc7b9] text-[#222432] text-xs sm:text-sm font-semibold px-4 py-2 rounded-full shadow-sm transition active:scale-95">
-            <UserCircle2 className="w-4 h-4" />
-            <span>Account</span>
-          </button>
+          {/* Login / Logout Button */}
+          <a
+            href={isLoggedIn ? "#" : "/login"}
+            onClick={handleAuthAction}
+            className="flex items-center gap-2 bg-[#f4917b] hover:bg-[#ffc7b9] text-[#222432] text-xs sm:text-sm font-semibold px-4 py-2 rounded-full shadow-sm transition active:scale-95 cursor-pointer"
+          >
+            {isLoggedIn ? (
+              <>
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </>
+            ) : (
+              <>
+                <UserCircle2 className="w-4 h-4" />
+                <span>Login</span>
+              </>
+            )}
+          </a>
 
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -255,10 +283,30 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
       {mobileMenuOpen && (
         <div className="sm:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-2">
           <a
-            href="/partnership"
+            href={isLoggedIn ? "#" : "/login"}
+            onClick={(e) => {
+              handleAuthAction(e);
+              setMobileMenuOpen(false);
+            }}
+            className="flex items-center gap-2 py-2 text-sm font-semibold text-slate-700 hover:text-[#f4917b]"
+          >
+            {isLoggedIn ? (
+              <>
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </>
+            ) : (
+              <>
+                <UserCircle2 className="w-4 h-4" />
+                <span>Login</span>
+              </>
+            )}
+          </a>
+          <a
+            href="/event-creation"
             className="flex items-center gap-2 py-2 text-sm font-medium text-slate-700"
           >
-            Partner with Us
+            Create Event
           </a>
           <div className="pt-2 border-t border-slate-100">
             <p className="text-xs font-semibold text-slate-400 mb-2">Select Category</p>
