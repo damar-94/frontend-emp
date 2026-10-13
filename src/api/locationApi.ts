@@ -1,5 +1,5 @@
-import type { LocCity, LocProvince } from "@/types/location.types";
-import axios from "axios";
+import type { LocCity, LocProvince } from '@/types/location.types';
+import axios from 'axios';
 
 const regionalApi = axios.create({
   baseURL: "https://www.emsifa.com/api-wilayah-indonesia/api",
@@ -19,9 +19,7 @@ export const getProvinces = async (): Promise<LocProvince[]> => {
   }
 };
 
-export const getCitiesByProvince = async (
-  provinceId: string,
-): Promise<LocCity[]> => {
+export const getCitiesByProvince = async (provinceId: string): Promise<LocCity[]> => {
   try {
     const res = await regionalApi.get(`/regencies/${provinceId}.json`);
 
