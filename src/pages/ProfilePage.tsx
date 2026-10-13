@@ -1,19 +1,6 @@
-import { useRef, useState } from "react";
-import {
-  Camera,
-  Check,
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
-  Pencil,
-  Star,
-  User,
-} from "lucide-react";
-
+import { useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -21,523 +8,198 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 
-const ProfilePage = () => {
-  // =========================
-  // Profile State
-  // =========================
+import { Coins } from "lucide-react";
 
+export default function ProfilePage() {
   const [name, setName] = useState("Kamal");
   const [email] = useState("kamal@example.com");
+  const [profilePicture, setProfilePicture] = useState("");
+  const [preview, setPreview] = useState("");
 
-  const [profilePicture, setProfilePicture] = useState(
-    "https://i.pravatar.cc/150?img=12",
-  );
-
-  const [referralCode] = useState("KAMAL123");
-  const [points] = useState(10000);
-
-  // Dummy password hash
-  const [passwordHash] = useState(
-    "$argon2id$v=19$m=65536,t=3,p=4$xxxxxxxxxxxxxxxx",
-  );
-
-  // =========================
-  // Edit State
-  // =========================
-
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [nameInput, setNameInput] = useState(name);
-
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // =========================
-  // Handlers
-  // =========================
-
-  const handleProfilePictureChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
     if (!file) return;
 
-    const imageUrl = URL.createObjectURL(file);
-
-    setProfilePicture(imageUrl);
-  };
-
-  const handleSaveName = () => {
-    if (!nameInput.trim()) return;
-
-    setName(nameInput);
-    setIsEditingName(false);
-  };
-
-  const handleCancelName = () => {
-    setNameInput(name);
-    setIsEditingName(false);
-  };
-
-  const handleChangePassword = () => {
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      alert("Please fill all password fields.");
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Ukuran gambar maksimal 2 MB");
       return;
     }
 
-    if (newPassword !== confirmPassword) {
-      alert("New password and confirmation password do not match.");
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      alert("Password must be at least 6 characters.");
-      return;
-    }
-
-    // Frontend only
-    console.log({
-      currentPassword,
-      newPassword,
-    });
-
-    alert("Password changed successfully.");
-
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setIsChangingPassword(false);
+    setProfilePicture(URL.createObjectURL(file));
+    setPreview(file.name);
   };
 
-  // =========================
-  // UI
-  // =========================
+  const handleUpdateProfile = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    alert("Frontend demo: profil berhasil disimpan");
+  };
+
+  const handleChangePassword = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    alert("Frontend demo: password berhasil diubah");
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-8">
-      <div className="mx-auto max-w-4xl space-y-6">
-
+    <main className="min-h-screen bg-gray-50 px-4 py-10">
+      <div className="mx-auto max-w-3xl space-y-6">
         {/* Page Header */}
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Profile
-          </h1>
-
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage your personal information and account settings.
+          <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Manage your profile and account security.
           </p>
         </div>
 
-        {/* =========================
-            Profile Card
-        ========================== */}
+        {/* Profile Summary */}
 
         <Card>
-          <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
+          <CardContent className="flex items-center gap-4 p-4">
+            <Avatar className="h-14 w-14 shrink-0">
+              <AvatarImage src={profilePicture} />
+              <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
 
-            <CardDescription>
-              Manage your profile information.
-            </CardDescription>
-          </CardHeader>
+            <div className="min-w-0">
+              <h2 className="font-semibold">{name}</h2>
+              <p className="truncate text-sm text-muted-foreground">{email}</p>
 
-          <CardContent className="space-y-8">
+              <span className="mt-1 inline-block rounded-full bg-pink-100 px-2 py-0.5 text-xs font-medium text-pink-700">
+                Customer
+              </span>
+            </div>
 
-            {/* Profile Picture */}
-
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                <img
-                  src={profilePicture}
-                  alt="Profile"
-                  className="h-28 w-28 rounded-full object-cover border-4 border-white shadow-md"
-                />
-
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full bg-black text-white shadow-md transition hover:bg-slate-800"
-                >
-                  <Camera className="h-4 w-4" />
-                </button>
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleProfilePictureChange}
-                  className="hidden"
-                />
-              </div>
+            <div className="flex shrink-0 items-center gap-2 border-l pl-4">
+              <Coins className="h-5 w-5 text-pink-600" />
 
               <div>
-                <h3 className="font-semibold">
-                  Profile Picture
-                </h3>
-
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Click the camera button to upload a new picture.
-                </p>
-
-                <p className="mt-1 text-xs text-muted-foreground">
-                  JPG, PNG or WEBP.
-                </p>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Name */}
-
-            <div className="space-y-2">
-              <Label htmlFor="name">
-                Name
-              </Label>
-
-              {!isEditingName ? (
-                <div className="flex gap-3">
-                  <div className="relative flex-1">
-                    <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-
-                    <Input
-                      id="name"
-                      value={name}
-                      readOnly
-                      className="pl-10"
-                    />
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsEditingName(true)}
-                  >
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Edit
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex gap-3">
-                  <Input
-                    value={nameInput}
-                    onChange={(event) =>
-                      setNameInput(event.target.value)
-                    }
-                    placeholder="Enter your name"
-                  />
-
-                  <Button
-                    type="button"
-                    onClick={handleSaveName}
-                  >
-                    <Check className="mr-2 h-4 w-4" />
-                    Save
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleCancelName}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* Email */}
-
-            <div className="space-y-2">
-              <Label htmlFor="email">
-                Email
-              </Label>
-
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-
-                <Input
-                  id="email"
-                  value={email}
-                  readOnly
-                  className="pl-10 bg-muted"
-                />
-              </div>
-
-              <p className="text-xs text-muted-foreground">
-                Email address cannot be changed.
-              </p>
-            </div>
-
-            {/* Referral Code */}
-
-            <div className="space-y-2">
-              <Label htmlFor="referralCode">
-                Referral Code
-              </Label>
-
-              <Input
-                id="referralCode"
-                value={referralCode}
-                readOnly
-                className="bg-muted font-mono"
-              />
-
-              <p className="text-xs text-muted-foreground">
-                Your referral code cannot be changed.
-              </p>
-            </div>
-
-            {/* Points */}
-
-            <div className="space-y-2">
-              <Label>
-                Points
-              </Label>
-
-              <div className="flex items-center gap-3 rounded-lg border bg-slate-50 p-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-100">
-                  <Star className="h-5 w-5 text-yellow-600" />
-                </div>
-
-                <div>
-                  <p className="text-2xl font-bold">
-                    {points.toLocaleString("id-ID")}
-                  </p>
-
-                  <p className="text-sm text-muted-foreground">
-                    Available points
-                  </p>
-                </div>
+                <p className="text-xs text-muted-foreground">Points</p>
+                <p className="font-bold text-pink-600">10,000</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* =========================
-            Security Card
-        ========================== */}
-
+        {/* Edit Profile */}
         <Card>
           <CardHeader>
-            <CardTitle>Security</CardTitle>
+            <CardTitle>Edit Profile</CardTitle>
+            <CardDescription>Update your personal information.</CardDescription>
+          </CardHeader>
 
+          <CardContent>
+            <form onSubmit={handleUpdateProfile} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="photo">Profile Picture</Label>
+                <Input
+                  id="photo"
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                />
+                {preview && (
+                  <p className="text-xs text-muted-foreground">
+                    Selected: {preview}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input id="email" type="email" value={email} disabled />
+              </div>
+
+              <Button type="submit" className="bg-pink-600 hover:bg-pink-700">
+                Save Changes
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Change Password */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Change Password</CardTitle>
             <CardDescription>
-              Manage your account password.
+              Update your password to keep your account secure.
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-6">
-
-            {/* Password Hash */}
-
-            <div className="space-y-2">
-              <Label htmlFor="passwordHash">
-                Password
-              </Label>
-
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-
+          <CardContent>
+            <form onSubmit={handleChangePassword} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="currentPassword">Current Password</Label>
                 <Input
-                  id="passwordHash"
-                  value={passwordHash}
-                  readOnly
-                  className="pl-10 pr-4 font-mono text-xs bg-muted"
+                  id="currentPassword"
+                  type="password"
+                  placeholder="Enter current password"
+                  required
                 />
               </div>
 
-              <p className="text-xs text-muted-foreground">
-                Your password is stored securely as a hash.
-              </p>
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  placeholder="Enter new password"
+                  minLength={8}
+                  required
+                />
+              </div>
 
-            {!isChangingPassword ? (
-              <Button
-                type="button"
-                onClick={() => setIsChangingPassword(true)}
-              >
-                <Lock className="mr-2 h-4 w-4" />
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Confirm new password"
+                  minLength={8}
+                  required
+                />
+              </div>
+
+              <Button type="submit" variant="outline">
                 Change Password
               </Button>
-            ) : (
-              <div className="space-y-5 rounded-lg border p-5">
+            </form>
 
-                <div>
-                  <h3 className="font-semibold">
-                    Change Password
-                  </h3>
+            <Separator className="my-6" />
 
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Enter your current password and choose a new one.
-                  </p>
-                </div>
-
-                {/* Current Password */}
-
-                <div className="space-y-2">
-                  <Label htmlFor="currentPassword">
-                    Current Password
-                  </Label>
-
-                  <div className="relative">
-                    <Input
-                      id="currentPassword"
-                      type={
-                        showCurrentPassword
-                          ? "text"
-                          : "password"
-                      }
-                      value={currentPassword}
-                      onChange={(event) =>
-                        setCurrentPassword(event.target.value)
-                      }
-                      className="pr-10"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowCurrentPassword(
-                          !showCurrentPassword,
-                        )
-                      }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                    >
-                      {showCurrentPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* New Password */}
-
-                <div className="space-y-2">
-                  <Label htmlFor="newPassword">
-                    New Password
-                  </Label>
-
-                  <div className="relative">
-                    <Input
-                      id="newPassword"
-                      type={
-                        showNewPassword
-                          ? "text"
-                          : "password"
-                      }
-                      value={newPassword}
-                      onChange={(event) =>
-                        setNewPassword(event.target.value)
-                      }
-                      className="pr-10"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowNewPassword(
-                          !showNewPassword,
-                        )
-                      }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                    >
-                      {showNewPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-
-                  <p className="text-xs text-muted-foreground">
-                    Password must be at least 6 characters.
-                  </p>
-                </div>
-
-                {/* Confirm Password */}
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">
-                    Confirm New Password
-                  </Label>
-
-                  <div className="relative">
-                    <Input
-                      id="confirmPassword"
-                      type={
-                        showConfirmPassword
-                          ? "text"
-                          : "password"
-                      }
-                      value={confirmPassword}
-                      onChange={(event) =>
-                        setConfirmPassword(event.target.value)
-                      }
-                      className="pr-10"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowConfirmPassword(
-                          !showConfirmPassword,
-                        )
-                      }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Actions */}
-
-                <div className="flex gap-3">
-                  <Button
-                    type="button"
-                    onClick={handleChangePassword}
-                  >
-                    Update Password
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setIsChangingPassword(false);
-                      setCurrentPassword("");
-                      setNewPassword("");
-                      setConfirmPassword("");
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
+            {/* Reset Password */}
+            <div className="space-y-3">
+              <div>
+                <h3 className="font-medium">Forgot your password?</h3>
+                <p className="text-sm text-muted-foreground">
+                  Reset your password using your registered email.
+                </p>
               </div>
-            )}
+
+              <Button
+                variant="link"
+                className="h-auto p-0 text-pink-600"
+                onClick={() => window.location.assign("/forgot-password")}
+              >
+                Reset Password
+              </Button>
+            </div>
           </CardContent>
         </Card>
-
       </div>
-    </div>
+    </main>
   );
-};
-
-export default ProfilePage;
+}

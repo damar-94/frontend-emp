@@ -1,11 +1,8 @@
-import { ShieldCheck } from "lucide-react";
-
 export function Footer() {
   return (
     <footer className="w-full bg-white border-t border-slate-200 text-slate-700 text-xs sm:text-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8 mb-12">
-          
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-1.5">
               <span className="font-extrabold text-2xl tracking-tight text-slate-900">
@@ -14,8 +11,8 @@ export function Footer() {
             </div>
 
             <p className="text-slate-600 text-xs leading-relaxed max-w-sm">
-              Easily buy concert, festival, sports, and other exciting event tickets
-              on EventTix.
+              Easily buy concert, festival, sports, and other exciting event
+              tickets on EventTix.
               <br />
               <strong className="text-slate-900 font-semibold">
                 #SUREYOUCAN buy tickets to your dream events &amp; attractions!
@@ -24,7 +21,6 @@ export function Footer() {
           </div>
 
           <div className="lg:col-span-4 grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8">
-            
             <div>
               <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider mb-3">
                 About EventTix
@@ -168,9 +164,7 @@ export function Footer() {
                 </li>
               </ul>
             </div>
-
           </div>
-
         </div>
 
         <div className="pt-6 border-t border-slate-200 text-xs text-slate-500">
