@@ -1,10 +1,5 @@
-<<<<<<< HEAD:src/api/locationApi.ts
 import type { LocCity, LocProvince } from '@/types/location.types';
 import axios from 'axios';
-=======
-import type { LocCity, LocProvince } from "@/types/location.types";
-import axios from "axios";
->>>>>>> main:src/api/sumopodApi.ts
 
 const regionalApi = axios.create({
   baseURL: "https://www.emsifa.com/api-wilayah-indonesia/api",
@@ -24,13 +19,7 @@ export const getProvinces = async (): Promise<LocProvince[]> => {
   }
 };
 
-<<<<<<< HEAD:src/api/locationApi.ts
 export const getCitiesByProvince = async (provinceId: string): Promise<LocCity[]> => {
-=======
-export const getCitiesByProvince = async (
-  provinceId: string,
-): Promise<LocCity[]> => {
->>>>>>> main:src/api/sumopodApi.ts
   try {
     const res = await regionalApi.get(`/regencies/${provinceId}.json`);
 
