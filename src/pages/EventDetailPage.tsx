@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router"; // Diubah ke react-router
-import { Calendar, MapPin, Tag, Users, CheckCircle } from "lucide-react";
+import { Calendar, MapPin, Tag} from "lucide-react";
 import type { EventModel } from "@/types/event.types";
 import { axiosInstance } from "@/lib/axios";
 import { Navbar } from "@/components/Navbar";
@@ -33,7 +33,7 @@ export const EventDetailPage: React.FC = () => {
     <div className="bg-[#fbf7f4]">
         <Navbar/>
       <div className="max-w-5xl mx-auto px-4 py-10">
-        <div className="aspect-[21/9] w-full rounded-2xl overflow-hidden mb-6 shadow-md">
+        <div className="aspect-21/9 w-full rounded-2xl overflow-hidden mb-6 shadow-md">
           <img
             src={event.thumbnail}
             alt={event.name}

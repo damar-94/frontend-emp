@@ -21,6 +21,8 @@ export const registerUserSchema = z.object({
   referralCode: z.string().optional(),
 });
 
+// schema login user
+
 export const loginSchema = z.object({
   email: z.email(),
   password: z.string().min(1),

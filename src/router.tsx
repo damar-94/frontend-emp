@@ -1,13 +1,14 @@
 import { createBrowserRouter } from "react-router";
-import Homepage from "./pages/Homepage";
-import LoginPage from "./pages/LoginPage";
-import ProfilePage from "./pages/ProfilePage";
-import RegisterPage from "./pages/RegisterPage";
+import { OrganizerRoute } from "./components/OrganizerRoute";
 import { guestLoader } from "./loaders/guestLoader";
 import { CreateEventPage } from "./pages/CreateEventPage";
 import { EventBrowsingPage } from "./pages/EventBrowsingPage";
 import { EventDetailPage } from "./pages/EventDetailPage";
-import { OrganizerRoute } from "./components/OrganizerRoute";
+import ForgotPassword from "./pages/ForgotPasswordPage";
+import Homepage from "./pages/Homepage";
+import LoginPage from "./pages/LoginPage";
+import ProfilePage from "./pages/ProfilePage";
+import RegisterPage from "./pages/RegisterPage";
 
 export const router = createBrowserRouter([
   {
@@ -27,6 +28,10 @@ export const router = createBrowserRouter([
   {
     path: "/profile",
     element: <ProfilePage />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPassword/>,
   },
   {
     path: "/event-creation",
