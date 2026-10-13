@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router";
 
-function ForgotPasword() {
+function ForgotPassword() {
   const {
     register,
     handleSubmit,
@@ -98,4 +98,4 @@ function ForgotPasword() {
   );
 }
 
-export default ForgotPasword;
+export default ForgotPassword;

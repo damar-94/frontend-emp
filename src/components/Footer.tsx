@@ -14,22 +14,20 @@ export function Footer() {
             </div>
 
             <p className="text-slate-600 text-xs leading-relaxed max-w-sm">
-              Beli tiket konser, festival, sport event, dan event seru lainnya
-              dengan mudah di EventTix.
+              Easily buy concert, festival, sports, and other exciting event tickets
+              on EventTix.
               <br />
               <strong className="text-slate-900 font-semibold">
-                #PASTIBISA beli tiket event &amp; wahana idaman!
+                #SUREYOUCAN buy tickets to your dream events &amp; attractions!
               </strong>
             </p>
-
-            
           </div>
 
           <div className="lg:col-span-4 grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8">
             
             <div>
               <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider mb-3">
-                Tentang EventTix
+                About EventTix
               </h4>
               <ul className="space-y-2 text-xs">
                 <li>
@@ -37,7 +35,7 @@ export function Footer() {
                     href="#about"
                     className="text-slate-600 hover:text-blue-600 transition"
                   >
-                    Tentang Kami
+                    About Us
                   </a>
                 </li>
                 <li>
@@ -53,7 +51,7 @@ export function Footer() {
 
             <div>
               <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider mb-3">
-                Produk
+                Products
               </h4>
               <ul className="space-y-2 text-xs">
                 <li>
@@ -93,7 +91,7 @@ export function Footer() {
                     href="#pricing"
                     className="text-slate-600 hover:text-blue-600 transition"
                   >
-                    Biaya
+                    Pricing
                   </a>
                 </li>
                 <li>
@@ -101,7 +99,7 @@ export function Footer() {
                     href="#partnership"
                     className="text-slate-600 hover:text-blue-600 transition"
                   >
-                    Kerjasama dengan Kami
+                    Partner with Us
                   </a>
                 </li>
                 <li>
@@ -109,7 +107,7 @@ export function Footer() {
                     href="#guide"
                     className="text-slate-600 hover:text-blue-600 transition"
                   >
-                    Buku Panduan Creator
+                    Creator Guidebook
                   </a>
                 </li>
                 <li>
@@ -125,7 +123,7 @@ export function Footer() {
 
             <div>
               <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider mb-3">
-                Dukungan
+                Support
               </h4>
               <ul className="space-y-2 text-xs">
                 <li>
@@ -133,7 +131,7 @@ export function Footer() {
                     href="#help"
                     className="text-slate-600 hover:text-blue-600 transition"
                   >
-                    Pusat Bantuan
+                    Help Center
                   </a>
                 </li>
                 <li>
@@ -141,7 +139,7 @@ export function Footer() {
                     href="#terms"
                     className="text-slate-600 hover:text-blue-600 transition"
                   >
-                    Syarat dan Ketentuan
+                    Terms and Conditions
                   </a>
                 </li>
                 <li>
@@ -149,7 +147,7 @@ export function Footer() {
                     href="#privacy"
                     className="text-slate-600 hover:text-blue-600 transition"
                   >
-                    Kebijakan Privasi
+                    Privacy Policy
                   </a>
                 </li>
                 <li>
@@ -157,7 +155,7 @@ export function Footer() {
                     href="#compliance"
                     className="text-slate-600 hover:text-blue-600 transition"
                   >
-                    Kepatuhan Keamanan & Privasi
+                    Security &amp; Privacy Compliance
                   </a>
                 </li>
                 <li>
@@ -165,7 +163,7 @@ export function Footer() {
                     href="#cookies"
                     className="text-slate-600 hover:text-blue-600 transition"
                   >
-                    Kebijakan Cookies
+                    Cookie Policy
                   </a>
                 </li>
               </ul>
