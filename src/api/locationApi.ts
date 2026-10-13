@@ -1,11 +1,11 @@
-import type { SumopodCity, SumopodProvince } from '@/types/location.types';
+import type { LocCity, LocProvince } from '@/types/location.types';
 import axios from 'axios';
 
 const regionalApi = axios.create({
   baseURL: 'https://www.emsifa.com/api-wilayah-indonesia/api',
 });
 
-export const getProvinces = async (): Promise<SumopodProvince[]> => {
+export const getProvinces = async (): Promise<LocProvince[]> => {
   try {
     const res = await regionalApi.get('/provinces.json');
     return res.data;
@@ -19,7 +19,7 @@ export const getProvinces = async (): Promise<SumopodProvince[]> => {
   }
 };
 
-export const getCitiesByProvince = async (provinceId: string): Promise<SumopodCity[]> => {
+export const getCitiesByProvince = async (provinceId: string): Promise<LocCity[]> => {
   try {
     const res = await regionalApi.get(`/regencies/${provinceId}.json`);
     // Emsifa returns regencies/cities matching the province ID

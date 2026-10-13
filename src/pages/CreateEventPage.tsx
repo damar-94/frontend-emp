@@ -5,7 +5,7 @@ import type { LocCity, LocProvince } from "@/types/location.types";
 import { Plus, Trash2, Upload } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
-import { getCitiesByProvince, getProvinces } from "../api/sumopodApi";
+import { getCitiesByProvince, getProvinces } from "../api/locationApi";
 
 interface FormValues {
   name: string;
