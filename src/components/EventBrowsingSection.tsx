@@ -163,7 +163,7 @@ export function EventBrowsingSection() {
                     to={`/events/${event.id}`}
                     className="group/card flex flex-col h-full bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
                   >
-                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
+                    <div className="relative aspect-4/3 w-full overflow-hidden bg-slate-100">
                       <img
                         src={event.thumbnail}
                         alt={event.name}
@@ -204,7 +204,7 @@ export function EventBrowsingSection() {
                             {formatIDR(lowestPrice)}
                           </span>
                         </div>
-                        <span className="text-[11px] text-slate-400 truncate max-w-[90px] text-right">
+                        <span className="text-[11px] text-slate-400 truncate max-w-22.5 text-right">
                           {event.availableSeat} seats left
                         </span>
                       </div>
