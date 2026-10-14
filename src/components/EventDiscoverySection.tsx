@@ -1,13 +1,3 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router";
-import {
-  ChevronRight,
-  Flame,
-  MapPin,
-  CalendarDays,
-  Loader2,
-  Calendar,
-} from "lucide-react";
 import {
   Carousel,
   CarouselContent,
@@ -17,6 +7,16 @@ import {
 } from "@/components/ui/carousel";
 import { axiosInstance } from "@/lib/axios";
 import type { EventModel } from "@/types/event.types";
+import {
+  Calendar,
+  CalendarDays,
+  ChevronRight,
+  Flame,
+  Loader2,
+  MapPin,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router";
 
 export function EventDiscoverySection() {
   const [events, setEvents] = useState<EventModel[]>([]);

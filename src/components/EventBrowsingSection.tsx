@@ -1,5 +1,3 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router";
 import {
   Carousel,
   CarouselContent,
@@ -7,9 +5,11 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { Calendar, ChevronRight, MapPin, Ticket, Loader2 } from "lucide-react";
 import { axiosInstance } from "@/lib/axios";
 import type { EventModel } from "@/types/event.types";
+import { Calendar, ChevronRight, Loader2, MapPin, Ticket } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router";
 
 const CATEGORIES = [
   { id: 0, name: "All Categories" },
