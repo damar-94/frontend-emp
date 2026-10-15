@@ -1,13 +1,3 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router";
-import {
-  ChevronRight,
-  Flame,
-  MapPin,
-  CalendarDays,
-  Loader2,
-  Calendar,
-} from "lucide-react";
 import {
   Carousel,
   CarouselContent,
@@ -17,6 +7,16 @@ import {
 } from "@/components/ui/carousel";
 import { axiosInstance } from "@/lib/axios";
 import type { EventModel } from "@/types/event.types";
+import {
+  Calendar,
+  CalendarDays,
+  ChevronRight,
+  Flame,
+  Loader2,
+  MapPin,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router";
 
 export function EventDiscoverySection() {
   const [events, setEvents] = useState<EventModel[]>([]);
@@ -69,7 +69,7 @@ export function EventDiscoverySection() {
         {/* Left Column: Shadcn Carousel Image Slideshow */}
         <div className="lg:col-span-4 w-full">
           {loading ? (
-            <div className="aspect-[4/5] sm:aspect-[3/4] lg:aspect-auto lg:h-[490px] w-full rounded-2xl bg-slate-100 flex items-center justify-center">
+            <div className="aspect-4/5m:aspect-[3/4] lg:aspect-auto lg:h-122.5 w-full rounded-2xl bg-slate-100 flex items-center justify-center">
               <Loader2 className="w-6 h-6 animate-spin text-[#f4917b]" />
             </div>
           ) : events.length > 0 ? (
@@ -80,10 +80,10 @@ export function EventDiscoverySection() {
               }}
               className="relative w-full rounded-2xl overflow-hidden shadow-md group"
             >
-              <CarouselContent className="-ml-0">
+              <CarouselContent className="ml-0">
                 {events.slice(0, 5).map((event) => (
                   <CarouselItem key={event.id} className="pl-0 relative">
-                    <div className="relative aspect-[4/5] sm:aspect-[3/4] lg:aspect-auto lg:h-[490px] w-full overflow-hidden bg-slate-900 flex flex-col justify-between p-6">
+                    <div className="relative aspect-4/5 sm:aspect-3/4 lg:aspect-auto lg:h-122.5 w-full overflow-hidden bg-slate-900 flex flex-col justify-between p-6">
                       {/* Background Image */}
                       <img
                         src={event.thumbnail}
@@ -91,7 +91,7 @@ export function EventDiscoverySection() {
                         className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                       {/* Gradient Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30 pointer-events-none" />
+                      <div className="absolute inset-0 bg-linear-to-trom-black/90 via-black/40 to-black/30 pointer-events-none" />
 
                       {/* Top Badges */}
                       <div className="relative z-10 flex items-center justify-between">
@@ -143,7 +143,7 @@ export function EventDiscoverySection() {
               <CarouselNext className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 bg-white/80 hover:bg-white text-slate-800 border-none shadow opacity-0 group-hover:opacity-100 transition-opacity z-20" />
             </Carousel>
           ) : (
-            <div className="aspect-[4/5] sm:aspect-[3/4] lg:aspect-auto lg:h-[490px] w-full rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 text-sm">
+            <div className="aspect-4/5 sm:aspect-3/4 lg:aspect-auto lg:h-122.5 w-full rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 text-sm">
               No spotlight events available.
             </div>
           )}

@@ -1,5 +1,3 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router";
 import {
   Carousel,
   CarouselContent,
@@ -7,9 +5,11 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { Calendar, ChevronRight, MapPin, Ticket, Loader2 } from "lucide-react";
 import { axiosInstance } from "@/lib/axios";
 import type { EventModel } from "@/types/event.types";
+import { Calendar, ChevronRight, Loader2, MapPin, Ticket } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router";
 
 const CATEGORIES = [
   { id: 0, name: "All Categories" },
@@ -163,7 +163,7 @@ export function EventBrowsingSection() {
                     to={`/events/${event.id}`}
                     className="group/card flex flex-col h-full bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
                   >
-                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
+                    <div className="relative aspect-4/3 w-full overflow-hidden bg-slate-100">
                       <img
                         src={event.thumbnail}
                         alt={event.name}
@@ -204,7 +204,7 @@ export function EventBrowsingSection() {
                             {formatIDR(lowestPrice)}
                           </span>
                         </div>
-                        <span className="text-[11px] text-slate-400 truncate max-w-[90px] text-right">
+                        <span className="text-[11px] text-slate-400 truncate max-w-22.5 text-right">
                           {event.availableSeat} seats left
                         </span>
                       </div>

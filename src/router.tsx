@@ -7,8 +7,10 @@ import { EventDetailPage } from "./pages/EventDetailPage";
 import ForgotPassword from "./pages/ForgotPasswordPage";
 import Homepage from "./pages/Homepage";
 import LoginPage from "./pages/LoginPage";
+import NotFoundPage from "./pages/NotFound";
 import ProfilePage from "./pages/ProfilePage";
 import RegisterPage from "./pages/RegisterPage";
+import ResetPasswordPage from "./pages/ResetPassword";
 
 export const router = createBrowserRouter([
   {
@@ -31,7 +33,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/forgot-password",
-    element: <ForgotPassword/>,
+    element: <ForgotPassword />,
   },
   {
     path: "/event-creation",
@@ -48,5 +50,13 @@ export const router = createBrowserRouter([
   {
     path: "/events/:id",
     element: <EventDetailPage />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPasswordPage />,
+  },
+  {
+    path: "*",
+    element: <NotFoundPage />,
   },
 ]);

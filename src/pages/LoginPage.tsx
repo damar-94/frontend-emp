@@ -33,8 +33,9 @@ const LoginPage = () => {
           </h1>
 
           <p className="mt-2 text-sm text-[#3d312e]">
-            Sign in, <span className="font-medium text-[#f7542f]">discover</span>{" "}
-            new events, and{" "}
+            Sign in,{" "}
+            <span className="font-medium text-[#f7542f]">discover</span> new
+            events, and{" "}
             <span className="font-medium text-[#5a8a83]">have fun.</span>
           </p>
         </div>
@@ -90,7 +91,7 @@ const LoginPage = () => {
             <Button
               type="submit"
               disabled={isPending}
-              className="w-full bg-[#f7542f] text-white hover:bg-[#df7d67] font-medium"
+              className="w-full bg-[#f7542f] text-[#222432] hover:bg-[#df7d67] font-medium"
             >
               {isPending ? "Loading" : "Submit"}
             </Button>
