@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,14 +10,32 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { useEffect, useState } from "react";
 
+import { useAuth } from "@/stores/useAuth";
 import { Coins } from "lucide-react";
 
-export default function ProfilePage() {
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  changePasswordSchema,
+  type ChangePasswordSchema,
+} from "@/schemas_2/changePassword";
+import useChangePassword from "@/hooks/API/auth/useChangePassword";
+import useUploadProfilePicture from "@/hooks/API/profile/useUploadProfilePicture";
+
+function ProfilePage() {
   const [name, setName] = useState("Kamal");
-  const [email] = useState("kamal@example.com");
   const [profilePicture, setProfilePicture] = useState("");
   const [preview, setPreview] = useState("");
+
+  useEffect(() => {
+    if (!profilePicture.startsWith("blob:")) return;
+
+    return () => {
+      URL.revokeObjectURL(profilePicture);
+    };
+  }, [profilePicture]);
 
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -27,22 +44,62 @@ export default function ProfilePage() {
 
     if (file.size > 2 * 1024 * 1024) {
       alert("Ukuran gambar maksimal 2 MB");
+      event.target.value = "";
       return;
     }
 
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      alert("Format gambar harus JPEG, PNG, atau WebP");
+      event.target.value = "";
+      return;
+    }
+
+    setSelectedFile(file);
     setProfilePicture(URL.createObjectURL(file));
     setPreview(file.name);
   };
 
   const handleUpdateProfile = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    alert("Frontend demo: profil berhasil disimpan");
+
+    if (!selectedFile) {
+      alert("Silakan pilih foto profil terlebih dahulu");
+      return;
+    }
+
+    uploadProfilePictureMutation.mutate(selectedFile, {
+      onSuccess: () => {
+        setProfilePicture("");
+        setPreview("");
+        setSelectedFile(null);
+      },
+    });
   };
 
-  const handleChangePassword = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    alert("Frontend demo: password berhasil diubah");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const uploadProfilePictureMutation = useUploadProfilePicture();
+
+  const changePasswordMutation = useChangePassword();
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<ChangePasswordSchema>({
+    resolver: zodResolver(changePasswordSchema),
+  });
+
+  const onChangePassword = (values: ChangePasswordSchema) => {
+    changePasswordMutation.mutate(values, {
+      onSuccess: () => {
+        reset();
+      },
+    });
   };
+
+  const user = useAuth((state) => state.user);
 
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-10">
@@ -56,20 +113,25 @@ export default function ProfilePage() {
         </div>
 
         {/* Profile Summary */}
-
         <Card>
           <CardContent className="flex items-center gap-4 p-4">
             <Avatar className="h-14 w-14 shrink-0">
-              <AvatarImage src={profilePicture} />
-              <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
+              <AvatarImage
+                src={profilePicture || user?.profilePicture || undefined}
+              />
+              <AvatarFallback>
+                {user?.name.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
             </Avatar>
 
             <div className="min-w-0">
-              <h2 className="font-semibold">{name}</h2>
-              <p className="truncate text-sm text-muted-foreground">{email}</p>
+              <h2 className="font-semibold">{user?.name}</h2>
+              <p className="truncate text-sm text-muted-foreground">
+                {user?.email}
+              </p>
 
               <span className="mt-1 inline-block rounded-full bg-pink-100 px-2 py-0.5 text-xs font-medium text-pink-700">
-                Customer
+                {user?.role}
               </span>
             </div>
 
@@ -78,7 +140,7 @@ export default function ProfilePage() {
 
               <div>
                 <p className="text-xs text-muted-foreground">Points</p>
-                <p className="font-bold text-pink-600">10,000</p>
+                <p className="font-bold text-pink-600">{user?.points}</p>
               </div>
             </div>
           </CardContent>
@@ -98,7 +160,7 @@ export default function ProfilePage() {
                 <Input
                   id="photo"
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   onChange={handlePhotoChange}
                 />
                 {preview && (
@@ -109,22 +171,25 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name">Name</Label>
                 <Input
                   id="name"
-                  value={name}
+                  value={user?.name}
                   onChange={(event) => setName(event.target.value)}
                   required
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input id="email" type="email" value={email} disabled />
-              </div>
-
-              <Button type="submit" className="bg-pink-600 hover:bg-pink-700">
-                Save Changes
+              <Button
+                type="submit"
+                className="bg-pink-600 hover:bg-pink-700"
+                disabled={
+                  uploadProfilePictureMutation.isPending || !selectedFile
+                }
+              >
+                {uploadProfilePictureMutation.isPending
+                  ? "Uploading..."
+                  : "Save Changes"}
               </Button>
             </form>
           </CardContent>
@@ -140,15 +205,23 @@ export default function ProfilePage() {
           </CardHeader>
 
           <CardContent>
-            <form onSubmit={handleChangePassword} className="space-y-5">
+            <form
+              onSubmit={handleSubmit(onChangePassword)}
+              className="space-y-5"
+            >
               <div className="space-y-2">
                 <Label htmlFor="currentPassword">Current Password</Label>
                 <Input
                   id="currentPassword"
                   type="password"
                   placeholder="Enter current password"
-                  required
+                  {...register("currentPassword")}
                 />
+                {errors.currentPassword && (
+                  <p className="text-sm text-red-500">
+                    {errors.currentPassword.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -157,9 +230,13 @@ export default function ProfilePage() {
                   id="newPassword"
                   type="password"
                   placeholder="Enter new password"
-                  minLength={8}
-                  required
+                  {...register("newPassword")}
                 />
+                {errors.newPassword && (
+                  <p className="text-sm text-red-500">
+                    {errors.newPassword.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -168,13 +245,23 @@ export default function ProfilePage() {
                   id="confirmPassword"
                   type="password"
                   placeholder="Confirm new password"
-                  minLength={8}
-                  required
+                  {...register("confirmPassword")}
                 />
+                {errors.confirmPassword && (
+                  <p className="text-sm text-red-500">
+                    {errors.confirmPassword.message}
+                  </p>
+                )}
               </div>
 
-              <Button type="submit" variant="outline">
-                Change Password
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={changePasswordMutation.isPending}
+              >
+                {changePasswordMutation.isPending
+                  ? "Changing Password..."
+                  : "Change Password"}
               </Button>
             </form>
 
@@ -203,3 +290,5 @@ export default function ProfilePage() {
     </main>
   );
 }
+
+export default ProfilePage;

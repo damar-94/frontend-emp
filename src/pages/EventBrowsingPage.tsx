@@ -166,7 +166,7 @@ export const EventBrowsingPage: React.FC = () => {
                   to={`/events/${event.id}`}
                   className="group flex flex-col bg-white border border-[#f4917b] rounded-xl overflow-hidden hover:shadow-md transition"
                 >
-                  <div className="relative aspect-[16/9] w-full bg-slate-100 overflow-hidden">
+                  <div className="relative aspect-video w-full bg-slate-100 overflow-hidden">
                     <img
                       src={event.thumbnail}
                       alt={event.name}

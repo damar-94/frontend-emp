@@ -11,6 +11,8 @@ import NotFoundPage from "./pages/NotFound";
 import ProfilePage from "./pages/ProfilePage";
 import RegisterPage from "./pages/RegisterPage";
 import ResetPasswordPage from "./pages/ResetPassword";
+import EventOrganizerDashboardPage from "./pages/EventOrganizerDashboardPage";
+import { loginLoader } from "./loaders/loginLoader";
 
 export const router = createBrowserRouter([
   {
@@ -30,6 +32,7 @@ export const router = createBrowserRouter([
   {
     path: "/profile",
     element: <ProfilePage />,
+    loader:loginLoader,
   },
   {
     path: "/forgot-password",
@@ -58,5 +61,9 @@ export const router = createBrowserRouter([
   {
     path: "*",
     element: <NotFoundPage />,
+  },
+  {
+    path: "event-organizer-dashboard",
+    element: <EventOrganizerDashboardPage />,
   },
 ]);
