@@ -5,7 +5,7 @@ import { redirect } from "react-router";
 export const loginLoader = () => {
   const { user } = useAuth.getState();
 
-  if (!user) redirect("/login");
+  if (!user) return redirect("/login");
 
   return null;
 };

@@ -16,6 +16,7 @@ type Store = {
   login: (user: UserAuth) => void;
   logout: () => void;
   updateProfilePicture: (profilePicture: string | null) => void;
+  updateName: (name: string) => void;
 };
 
 export const useAuth = create<Store>()(
@@ -27,6 +28,10 @@ export const useAuth = create<Store>()(
       updateProfilePicture: (profilePicture) =>
         set((state) => ({
           user: state.user ? { ...state.user, profilePicture } : null,
+        })),
+      updateName: (name) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, name } : null,
         })),
     }),
     { name: "auth" },

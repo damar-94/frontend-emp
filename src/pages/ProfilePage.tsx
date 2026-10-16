@@ -10,11 +10,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { useEffect, useState } from "react";
-
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/stores/useAuth";
 import { Coins } from "lucide-react";
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -23,19 +21,38 @@ import {
 } from "@/schemas_2/changePassword";
 import useChangePassword from "@/hooks/API/auth/useChangePassword";
 import useUploadProfilePicture from "@/hooks/API/profile/useUploadProfilePicture";
+import useUpdateName from "@/hooks/API/profile/useUpdateName";
+import {
+  updateNameSchema,
+  type UpdateNameSchema,
+} from "@/schemas_2/updateName";
 
 function ProfilePage() {
-  const [name, setName] = useState("Kamal");
-  const [profilePicture, setProfilePicture] = useState("");
-  const [preview, setPreview] = useState("");
+  const user = useAuth((state) => state.user);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const uploadProfilePictureMutation = useUploadProfilePicture();
+  const updateNameMutation = useUpdateName();
+
+  const {
+    register: registerName,
+    handleSubmit: handleNameSubmit,
+    reset: resetName,
+    formState: { errors: nameErrors },
+  } = useForm<UpdateNameSchema>({
+    resolver: zodResolver(updateNameSchema),
+    defaultValues: {
+      name: user?.name ?? "",
+    },
+  });
 
   useEffect(() => {
-    if (!profilePicture.startsWith("blob:")) return;
-
-    return () => {
-      URL.revokeObjectURL(profilePicture);
-    };
-  }, [profilePicture]);
+    resetName({
+      name: user?.name ?? "",
+    });
+  }, [user?.name, resetName]);
 
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -43,42 +60,49 @@ function ProfilePage() {
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      alert("Ukuran gambar maksimal 2 MB");
+      alert("Please select an image that is no larger than 2 MB.");
       event.target.value = "";
       return;
     }
 
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      alert("Format gambar harus JPEG, PNG, atau WebP");
+      alert("Please select an image in JPEG, PNG, or WebP format.");
       event.target.value = "";
       return;
     }
 
     setSelectedFile(file);
-    setProfilePicture(URL.createObjectURL(file));
-    setPreview(file.name);
   };
 
-  const handleUpdateProfile = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleUploadProfilePicture = (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
 
-    if (!selectedFile) {
-      alert("Silakan pilih foto profil terlebih dahulu");
-      return;
-    }
+    if (!selectedFile) return;
 
     uploadProfilePictureMutation.mutate(selectedFile, {
       onSuccess: () => {
-        setProfilePicture("");
-        setPreview("");
         setSelectedFile(null);
+
+        if (photoInputRef.current) {
+          photoInputRef.current.value = "";
+        }
       },
     });
   };
 
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const handleUpdateName = (values: UpdateNameSchema) => {
+    if (values.name === user?.name) return;
 
-  const uploadProfilePictureMutation = useUploadProfilePicture();
+    updateNameMutation.mutate(values.name, {
+      onSuccess: () => {
+        resetName({
+          name: values.name,
+        });
+      },
+    });
+  };
 
   const changePasswordMutation = useChangePassword();
 
@@ -99,8 +123,6 @@ function ProfilePage() {
     });
   };
 
-  const user = useAuth((state) => state.user);
-
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-10">
       <div className="mx-auto max-w-3xl space-y-6">
@@ -116,9 +138,7 @@ function ProfilePage() {
         <Card>
           <CardContent className="flex items-center gap-4 p-4">
             <Avatar className="h-14 w-14 shrink-0">
-              <AvatarImage
-                src={profilePicture || user?.profilePicture || undefined}
-              />
+              <AvatarImage src={user?.profilePicture || undefined} />
               <AvatarFallback>
                 {user?.name.slice(0, 2).toUpperCase()}
               </AvatarFallback>
@@ -153,30 +173,17 @@ function ProfilePage() {
             <CardDescription>Update your personal information.</CardDescription>
           </CardHeader>
 
-          <CardContent>
-            <form onSubmit={handleUpdateProfile} className="space-y-5">
+          <CardContent className="space-y-6">
+            {/* Form Upload Profile Picture */}
+            <form onSubmit={handleUploadProfilePicture} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="photo">Profile Picture</Label>
                 <Input
+                  ref={photoInputRef}
                   id="photo"
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   onChange={handlePhotoChange}
-                />
-                {preview && (
-                  <p className="text-xs text-muted-foreground">
-                    Selected: {preview}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  value={user?.name}
-                  onChange={(event) => setName(event.target.value)}
-                  required
                 />
               </div>
 
@@ -189,7 +196,35 @@ function ProfilePage() {
               >
                 {uploadProfilePictureMutation.isPending
                   ? "Uploading..."
-                  : "Save Changes"}
+                  : "Update Picture"}
+              </Button>
+            </form>
+
+            <Separator />
+
+            {/* Form Update Name */}
+            <form
+              onSubmit={handleNameSubmit(handleUpdateName)}
+              className="space-y-4"
+            >
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+
+                <Input id="name" {...registerName("name")} />
+
+                {nameErrors.name && (
+                  <p className="text-sm text-red-500">
+                    {nameErrors.name.message}
+                  </p>
+                )}
+              </div>
+
+              <Button
+                type="submit"
+                className="bg-pink-600 hover:bg-pink-700"
+                disabled={updateNameMutation.isPending}
+              >
+                {updateNameMutation.isPending ? "Saving Name..." : "Save Name"}
               </Button>
             </form>
           </CardContent>
@@ -214,7 +249,7 @@ function ProfilePage() {
                 <Input
                   id="currentPassword"
                   type="password"
-                  placeholder="Enter current password"
+                  placeholder="Please enter your current password"
                   {...register("currentPassword")}
                 />
                 {errors.currentPassword && (
@@ -229,7 +264,7 @@ function ProfilePage() {
                 <Input
                   id="newPassword"
                   type="password"
-                  placeholder="Enter new password"
+                  placeholder="Please enter your new password"
                   {...register("newPassword")}
                 />
                 {errors.newPassword && (
@@ -244,7 +279,7 @@ function ProfilePage() {
                 <Input
                   id="confirmPassword"
                   type="password"
-                  placeholder="Confirm new password"
+                  placeholder="Please confirm your new password"
                   {...register("confirmPassword")}
                 />
                 {errors.confirmPassword && (
@@ -272,7 +307,8 @@ function ProfilePage() {
               <div>
                 <h3 className="font-medium">Forgot your password?</h3>
                 <p className="text-sm text-muted-foreground">
-                  Reset your password using your registered email.
+                  You can reset your password using your registered email
+                  address.
                 </p>
               </div>
 
