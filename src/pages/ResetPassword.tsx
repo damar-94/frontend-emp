@@ -9,7 +9,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ViewIcon, ViewOffSlashIcon } from "@hugeicons/core-free-icons";
-import useResetPassword from "@/hooks/API/auth/userResetPassword";
+import useResetPassword from "@/hooks/API/auth/useResetPassword";
 import { useSearchParams } from "react-router";
 
 function ResetPasswordPage() {
@@ -30,7 +30,6 @@ function ResetPasswordPage() {
 
   const[searchParams]=useSearchParams();
   const token = searchParams.get("token")
-
 
   const { mutate, isPending } = useResetPassword(token!);
 
