@@ -13,6 +13,8 @@ import RegisterPage from "./pages/RegisterPage";
 import ResetPasswordPage from "./pages/ResetPassword";
 import EventOrganizerDashboardPage from "./pages/EventOrganizerDashboardPage";
 import { loginLoader } from "./loaders/loginLoader";
+import { CategoryPage } from "./pages/CategoryPage";
+
 
 export const router = createBrowserRouter([
   {
@@ -65,5 +67,9 @@ export const router = createBrowserRouter([
   {
     path: "event-organizer-dashboard",
     element: <EventOrganizerDashboardPage />,
+  },
+  {
+    path: "/categories",
+    element: <CategoryPage />,
   },
 ]);

@@ -40,7 +40,7 @@ const LoginPage = () => {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit(handleLogin)} className="space-y-4">
+        <form onSubmit={handleSubmit(handleLogin)} className="space-y-4" noValidate>
           {/* Email */}
           <div className="space-y-2">
             <label

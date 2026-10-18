@@ -46,7 +46,7 @@ function RegisterPage() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(handleRegister)} className="space-y-4">
+        <form onSubmit={handleSubmit(handleRegister)} className="space-y-4" noValidate>
           {/* Name */}
           <div className="space-y-2">
             <Label htmlFor="name" className="text-sm font-semibold text-[#3d312e]">
