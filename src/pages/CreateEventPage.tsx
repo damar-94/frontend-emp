@@ -6,10 +6,11 @@ import { Plus, Trash2, Upload } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { getCitiesByProvince, getProvinces } from "../api/locationApi";
+import { useCategories } from "@/hooks/API/category/useGetCategories";
 
 interface FormValues {
   name: string;
-  categoryId: number;
+  categoryId: number | undefined;
   provinceId: string;
   cityName: string;
   startDate: string;
@@ -34,6 +35,8 @@ export const CreateEventPage: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const { data: categories, isPending, isError } = useCategories();
+
   const {
     register,
     control,
@@ -42,7 +45,7 @@ export const CreateEventPage: React.FC = () => {
     formState: { errors },
   } = useForm<FormValues>({
     defaultValues: {
-      categoryId: 1,
+      categoryId: undefined,
       tickets: [{ name: "Regular Entry", price: 0, totalSeat: 100 }],
       enablePromotion: false,
     },
@@ -178,15 +181,35 @@ export const CreateEventPage: React.FC = () => {
               <label className="block text-xs font-semibold text-slate-600 mb-1">
                 Category
               </label>
+
               <select
-                {...register("categoryId")}
+                {...register("categoryId", {
+                  required: "Please select a category",
+                  valueAsNumber: true,
+                })}
                 className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#f4917b] outline-none"
+                disabled={isPending || isError || !categories?.length}
               >
-                <option value="1">Music</option>
-                <option value="2">Technology</option>
-                <option value="3">Workshop</option>
-                <option value="4">Sports</option>
+                <option value="">
+                  {isPending
+                    ? "Loading categories..."
+                    : isError
+                      ? "Failed to load categories"
+                      : "Select Category"}
+                </option>
+
+                {categories?.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
               </select>
+
+              {errors.categoryId && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.categoryId.message}
+                </p>
+              )}
             </div>
 
             {/*  Location Pickers */}

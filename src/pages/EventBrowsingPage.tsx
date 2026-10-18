@@ -6,14 +6,7 @@ import { axiosInstance } from "@/lib/axios";
 import type { EventModel } from "@/types/event.types";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-
-const CATEGORIES = [
-  { id: 0, name: "All Categories" },
-  { id: 1, name: "Music" },
-  { id: 2, name: "Technology" },
-  { id: 3, name: "Workshop" },
-  { id: 4, name: "Sports" },
-];
+import type { Category } from "@/types/category.type";
 
 export const EventBrowsingPage: React.FC = () => {
   const [search, setSearch] = useState("");
@@ -22,21 +15,27 @@ export const EventBrowsingPage: React.FC = () => {
   const [events, setEvents] = useState<EventModel[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [categoryId, setCategoryId] = useState<number>(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const categoryParam = params.get("category");
-      if (categoryParam) {
-        const matchedCategory = CATEGORIES.find(
-          (c) => c.name.toLowerCase() === categoryParam.toLowerCase()
-        );
-        if (matchedCategory) return matchedCategory.id;
-      }
-    }
-    return 0;
-  });
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  console.log(categories);
+
+  const [categoryId, setCategoryId] = useState<number>(0);
 
   const debouncedSearch = useDebounce(search, 350);
+
+  // Mengambil data kategori
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await axiosInstance.get<Category[]>("/categories");
+        setCategories(res.data);
+      } catch (err) {
+        console.error("Failed to retrieve categories:", err);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   // 2. Fetch events otomatis akan berjalan dengan categoryId yang benar
   useEffect(() => {
@@ -63,7 +62,7 @@ export const EventBrowsingPage: React.FC = () => {
   useEffect(() => {
     if (location === "All Locations" && events.length > 0) {
       const uniqueCities = Array.from(
-        new Set(events.map((event) => event.location))
+        new Set(events.map((event) => event.location)),
       ).filter(Boolean);
       setLocations(["All Locations", ...uniqueCities]);
     }
@@ -80,28 +79,42 @@ export const EventBrowsingPage: React.FC = () => {
 
   // 3. Handler untuk transisi kategori instan dari Navbar
   const handleCategorySelect = (categoryName: string) => {
-    const matchedCategory = CATEGORIES.find(
-      (c) => c.name.toLowerCase() === categoryName.toLowerCase()
+    const matchedCategory = categories.find(
+      (category) => category.name.toLowerCase() === categoryName.toLowerCase(),
     );
-    
+
     if (matchedCategory) {
       setCategoryId(matchedCategory.id);
-      // Update URL di address bar tanpa me-reload halaman
-      window.history.pushState({}, "", `/events?category=${encodeURIComponent(categoryName)}`);
+
+      window.history.pushState(
+        {},
+        "",
+        `/events?category=${encodeURIComponent(matchedCategory.name)}`,
+      );
     }
   };
 
   // Update kategori juga saat "Category Pills" diklik
   const handlePillClick = (id: number, name: string) => {
     setCategoryId(id);
-    window.history.pushState({}, "", `/events?category=${encodeURIComponent(name)}`);
+
+    if (id === 0) {
+      window.history.pushState({}, "", "/events");
+      return;
+    }
+
+    window.history.pushState(
+      {},
+      "",
+      `/events?category=${encodeURIComponent(name)}`,
+    );
   };
 
   return (
     <div>
       {/* Sambungkan Navbar dengan handler */}
       <Navbar onSelectCategory={handleCategorySelect} />
-      
+
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="bg-white p-4 rounded-xl border border-[#f4917b] shadow-sm mb-6 space-y-4">
           <div className="flex flex-col md:flex-row gap-3">
@@ -132,18 +145,30 @@ export const EventBrowsingPage: React.FC = () => {
             </div>
           </div>
 
+          {/* kategori pill yang muncul berdasarkan data array yg telah difetch */}
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {CATEGORIES.map((cat) => (
+            <button
+              onClick={() => handlePillClick(0, "All Categories")}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+                categoryId === 0
+                  ? "bg-[#f4917b] text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              All Categories
+            </button>
+
+            {categories.map((category) => (
               <button
-                key={cat.id}
-                onClick={() => handlePillClick(cat.id, cat.name)}
+                key={category.id}
+                onClick={() => handlePillClick(category.id, category.name)}
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
-                  categoryId === cat.id
+                  categoryId === category.id
                     ? "bg-[#f4917b] text-white"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
-                {cat.name}
+                {category.name}
               </button>
             ))}
           </div>
@@ -192,7 +217,7 @@ export const EventBrowsingPage: React.FC = () => {
                                 month: "short",
                                 day: "numeric",
                                 year: "numeric",
-                              }
+                              },
                             )}
                           </span>
                         </div>

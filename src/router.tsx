@@ -13,6 +13,7 @@ import RegisterPage from "./pages/RegisterPage";
 import ResetPasswordPage from "./pages/ResetPassword";
 import EventOrganizerDashboardPage from "./pages/EventOrganizerDashboardPage";
 import { loginLoader } from "./loaders/loginLoader";
+import { CategoryPage } from "./pages/CategoryPage";
 import { TransactionPaymentPage } from "./pages/TransactionPaymentPage";
 
 export const router = createBrowserRouter([
@@ -33,7 +34,7 @@ export const router = createBrowserRouter([
   {
     path: "/profile",
     element: <ProfilePage />,
-    loader:loginLoader,
+    loader: loginLoader,
   },
   {
     path: "/forgot-password",
@@ -57,8 +58,8 @@ export const router = createBrowserRouter([
   },
   {
     path: "/transactions/:id",
-    element: <TransactionPaymentPage/>,
-    loader:loginLoader
+    element: <TransactionPaymentPage />,
+    loader: loginLoader,
   },
   {
     path: "/reset-password",
@@ -71,5 +72,9 @@ export const router = createBrowserRouter([
   {
     path: "event-organizer-dashboard",
     element: <EventOrganizerDashboardPage />,
+  },
+  {
+    path: "/categories",
+    element: <CategoryPage />,
   },
 ]);
