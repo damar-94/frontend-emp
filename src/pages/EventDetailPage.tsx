@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router";
-import { Calendar, MapPin, Tag, Minus, Plus, Coins, Ticket, Sparkles } from "lucide-react";
+import { Footer } from "@/components/Footer";
+import { Navbar } from "@/components/Navbar";
+import { axiosInstance } from "@/lib/axios";
 import type { EventModel } from "@/types/event.types";
 import type { UserCoupon } from "@/types/transaction.types";
-import { axiosInstance } from "@/lib/axios";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
+import { Calendar, Coins, MapPin, Minus, Plus, Tag, Ticket } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router";
 
 export const EventDetailPage: React.FC = () => {
   // 1. Extract event ID from URL parameters and initialize navigation hook
