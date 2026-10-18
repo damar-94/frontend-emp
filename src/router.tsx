@@ -13,6 +13,7 @@ import RegisterPage from "./pages/RegisterPage";
 import ResetPasswordPage from "./pages/ResetPassword";
 import EventOrganizerDashboardPage from "./pages/EventOrganizerDashboardPage";
 import { loginLoader } from "./loaders/loginLoader";
+import { TransactionPaymentPage } from "./pages/TransactionPaymentPage";
 
 export const router = createBrowserRouter([
   {
@@ -53,6 +54,11 @@ export const router = createBrowserRouter([
   {
     path: "/events/:id",
     element: <EventDetailPage />,
+  },
+  {
+    path: "/transactions/:id",
+    element: <TransactionPaymentPage/>,
+    loader:loginLoader
   },
   {
     path: "/reset-password",
