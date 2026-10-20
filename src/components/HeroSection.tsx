@@ -59,7 +59,7 @@ export function HeroSection() {
   if (loading) {
     return (
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="w-full aspect-[16/9] sm:aspect-[21/9] md:aspect-[24/8] max-h-[380px] rounded-2xl bg-slate-900 flex items-center justify-center text-slate-400 gap-2">
+        <div className="w-full aspect-video sm:aspect-21/9 md:aspect-24/8 max-h-95 rounded-2xl bg-slate-900 flex items-center justify-center text-slate-400 gap-2">
           <Loader2 className="w-6 h-6 animate-spin text-[#f4917b]" />
           <span className="text-sm font-medium">Loading featured events...</span>
         </div>
@@ -81,7 +81,7 @@ export function HeroSection() {
         }}
         className="relative w-full overflow-hidden rounded-2xl shadow-xl group"
       >
-        <CarouselContent className="-ml-0">
+        <CarouselContent className="ml-0">
           {events.map((event) => {
             const lowestPrice = event.ticketTypes?.length
               ? Math.min(...event.ticketTypes.map((t) => t.price))
@@ -97,14 +97,14 @@ export function HeroSection() {
               <CarouselItem key={event.id} className="pl-0 relative">
                 <Link
                   to={`/events/${event.id}`}
-                  className="relative block w-full aspect-[16/9] sm:aspect-[21/9] md:aspect-[24/8] max-h-[380px] overflow-hidden bg-slate-950"
+                  className="relative block w-full aspect-video sm:aspect-21/9 md:aspect-24/8 max-h-95 overflow-hidden bg-slate-950"
                 >
                   <img
                     src={event.thumbnail}
                     alt={event.name}
                     className="w-full h-full object-cover opacity-85 transition-transform duration-500 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/50 to-transparent" />
+                  <div className="absolute inset-0 bg-linear-to-r from-black/85 via-black/50 to-transparent" />
 
                   <div className="absolute inset-0 p-6 sm:p-10 flex flex-col justify-between">
                     <div className="max-w-xl">

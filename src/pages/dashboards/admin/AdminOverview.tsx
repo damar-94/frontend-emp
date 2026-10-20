@@ -1,0 +1,72 @@
+import { Users, CalendarDays, Tags, UserRound } from "lucide-react";
+
+export function AdminOverview() {
+  return (
+    <>
+      {/* Page Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+          Overview
+        </h1>
+
+        <p className="mt-2 text-sm text-gray-500">
+          Ringkasan statistik dan aktivitas platform.
+        </p>
+      </div>
+
+      {/* Statistics */}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        {/* Total Customers */}
+        <div className="rounded-xl border bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500">Total Customers</p>
+            <Users className="h-5 w-5 text-gray-400" />
+          </div>
+
+          <p className="mt-3 text-3xl font-bold">—</p>
+        </div>
+
+        {/* Total Events */}
+        <div className="rounded-xl border bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500">Total Events</p>
+            <CalendarDays className="h-5 w-5 text-gray-400" />
+          </div>
+
+          <p className="mt-3 text-3xl font-bold">—</p>
+        </div>
+
+        {/* Categories */}
+        <div className="rounded-xl border bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500">Total Categories</p>
+            <Tags className="h-5 w-5 text-gray-400" />
+          </div>
+
+          <p className="mt-3 text-3xl font-bold">—</p>
+        </div>
+
+        {/* Organizers */}
+        <div className="rounded-xl border bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500">Total Organizers</p>
+            <UserRound className="h-5 w-5 text-gray-400" />
+          </div>
+
+          <p className="mt-3 text-3xl font-bold">—</p>
+        </div>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="mt-8 rounded-xl border bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-gray-900">
+          Recent Activity
+        </h2>
+
+        <p className="mt-2 text-sm text-gray-500">
+          Recent platform activity will appear here.
+        </p>
+      </div>
+    </>
+  );
+}
