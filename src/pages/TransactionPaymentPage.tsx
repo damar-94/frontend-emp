@@ -1,6 +1,14 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { useParams } from "react-router";
-import { Clock, Upload, CheckCircle2, XCircle } from "lucide-react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useParams, useNavigate } from "react-router";
+import {
+  Clock,
+  Upload,
+  CheckCircle2,
+  XCircle,
+  ArrowLeft,
+  ExternalLink,
+  RefreshCw,
+} from "lucide-react";
 import { axiosInstance } from "@/lib/axios";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -10,14 +18,21 @@ export const TransactionPaymentPage: React.FC = () => {
   // 1. Support both `/transactions/:transactionId` and `/transactions/:id` route definitions
   const params = useParams<{ transactionId?: string; id?: string }>();
   const transactionId = params.transactionId || params.id;
+  const navigate = useNavigate();
+
+  // Ref to clear the <input type="file"> element after a successful upload/re-upload
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // 2. Regular state for transaction data, loading, countdown seconds, and file upload
-  const [transaction, setTransaction] = useState<TransactionDetailModel | null>(null);
+  const [transaction, setTransaction] = useState<TransactionDetailModel | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [remainingSeconds, setRemainingSeconds] = useState<number>(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // 3. Pure function to load transaction from backend (memoized with useCallback)
   const fetchTransaction = useCallback(async () => {
@@ -67,7 +82,12 @@ export const TransactionPaymentPage: React.FC = () => {
     const interval = setInterval(calculateRemaining, 1000);
 
     return () => clearInterval(interval);
-  }, [transaction?.id, transaction?.status, transaction?.paymentDeadline, fetchTransaction]);
+  }, [
+    transaction?.id,
+    transaction?.status,
+    transaction?.paymentDeadline,
+    fetchTransaction,
+  ]);
 
   // 6. Pure helper to format seconds as HH:MM:SS
   const formatCountdown = (totalSec: number): string => {
@@ -85,13 +105,17 @@ export const TransactionPaymentPage: React.FC = () => {
       maximumFractionDigits: 0,
     }).format(v || 0);
 
-  // 8. Handler for submitting payment proof image via multipart/form-data
+  // 8. Handler for submitting or re-uploading payment proof image via multipart/form-data
   const handleUploadProof = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!selectedFile || !transactionId) return;
+    if (!selectedFile || !transactionId || isUploading) return;
+
+    const isReupload =
+      transaction?.status === "WAITING_FOR_ADMIN_CONFIRMATION";
 
     setIsUploading(true);
     setErrorMsg(null);
+    setSuccessMsg(null);
 
     const formData = new FormData();
     formData.append("paymentProof", selectedFile);
@@ -103,6 +127,18 @@ export const TransactionPaymentPage: React.FC = () => {
         { headers: { "Content-Type": "multipart/form-data" } }
       );
       setTransaction(res.data.data);
+
+      // Clear selected file state and reset the native <input type="file">
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      setSuccessMsg(
+        isReupload
+          ? "Payment proof successfully re-uploaded!"
+          : "Payment proof uploaded! Waiting for organizer confirmation."
+      );
     } catch (err: any) {
       setErrorMsg(err.response?.data?.message || "Upload failed");
     } finally {
@@ -141,20 +177,46 @@ export const TransactionPaymentPage: React.FC = () => {
     transaction.status === "CANCELED" ||
     transaction.status === "REJECTED";
 
+  // Check if a real payment proof image has already been uploaded
+  const hasUploadedProof =
+    Boolean(transaction.paymentProof) &&
+    transaction.paymentProof !== "FREE_OR_FULLY_COVERED";
+
+  // Allow initial upload (WAITING_FOR_PAYMENT) OR re-upload before admin confirms (WAITING_FOR_ADMIN_CONFIRMATION)
+  const canUploadOrReupload =
+    transaction.status === "WAITING_FOR_PAYMENT" ||
+    (transaction.status === "WAITING_FOR_ADMIN_CONFIRMATION" &&
+      transaction.paymentProof !== "FREE_OR_FULLY_COVERED");
+
+  const eventName =
+    transaction.transactionItems?.[0]?.ticketType?.event?.name ||
+    "Event Ticket Transaction";
+
   return (
     <div className="bg-[#fbf7f4] min-h-screen flex flex-col">
       <Navbar />
-      <div className="flex-1 max-w-xl w-full mx-auto px-4 py-12">
+      <div className="flex-1 max-w-xl w-full mx-auto px-4 py-12 space-y-4">
+        {/* Back Navigation Button */}
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-amber-900 transition"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to My Transactions
+        </button>
+
         <div className="bg-white rounded-2xl shadow-md p-6 space-y-6 border border-amber-200">
-          {/* Header: Transaction ID & Status Badge */}
-          <div className="flex justify-between items-center border-b pb-4">
+          {/* Header: Transaction ID, Event Name & Status Badge */}
+          <div className="flex justify-between items-start border-b pb-4">
             <div>
-              <span className="text-xs text-slate-400">Transaction ID</span>
-              <h2 className="text-lg font-extrabold text-amber-900">
-                #{transaction.id}
+              <span className="text-xs text-slate-400">
+                Transaction #{transaction.id}
+              </span>
+              <h2 className="text-lg font-extrabold text-amber-900 mt-0.5">
+                {eventName}
               </h2>
             </div>
-            {/* Fixed: Use .replace(/_/g, " ") instead of .replaceAll("_", " ") for TS compatibility */}
             <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#ffdfa5] text-amber-900">
               {String(transaction.status).replace(/_/g, " ")}
             </span>
@@ -188,7 +250,8 @@ export const TransactionPaymentPage: React.FC = () => {
                 <p className="font-bold">Payment Proof Uploaded!</p>
                 <p>
                   Waiting for organizer confirmation (auto-cancels & refunds if
-                  no response within 3 days).
+                  no response within 3 days). You can still re-upload a new
+                  receipt below until the organizer confirms.
                 </p>
               </div>
             </div>
@@ -232,6 +295,11 @@ export const TransactionPaymentPage: React.FC = () => {
               </div>
             ))}
 
+            <div className="flex justify-between pt-1 text-slate-500">
+              <span>Subtotal</span>
+              <span>{formatIDR(transaction.subtotal)}</span>
+            </div>
+
             {transaction.voucherDiscount > 0 && (
               <div className="flex justify-between text-emerald-700">
                 <span>Voucher Discount</span>
@@ -261,27 +329,81 @@ export const TransactionPaymentPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Upload Payment Proof Form */}
-          {transaction.status === "WAITING_FOR_PAYMENT" && (
+          {/* Uploaded Payment Proof Link (If already uploaded) */}
+          {hasUploadedProof && (
+            <div className="pt-3 border-t flex items-center justify-between text-xs">
+              <span className="font-semibold text-slate-700">
+                Current Payment Proof
+              </span>
+              <a
+                href={transaction.paymentProof!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 font-bold text-amber-800 hover:underline"
+              >
+                View Uploaded Image <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          )}
+
+          {/* Upload / Re-upload Payment Proof Form (Shown for WAITING_FOR_PAYMENT and WAITING_FOR_ADMIN_CONFIRMATION) */}
+          {canUploadOrReupload && (
             <form onSubmit={handleUploadProof} className="space-y-4 pt-4 border-t">
-              <label className="block text-xs font-bold text-slate-800">
-                Upload Payment Proof (JPG/PNG)
-              </label>
+              <div>
+                <label className="block text-xs font-bold text-slate-800">
+                  {hasUploadedProof
+                    ? "Re-upload Payment Proof (JPG/PNG)"
+                    : "Upload Payment Proof (JPG/PNG)"}
+                </label>
+                {hasUploadedProof && (
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Uploaded the wrong image? You can replace your payment proof
+                    while waiting for admin confirmation.
+                  </p>
+                )}
+              </div>
+
+              {/* File Input: Disabled while isUploading is true so user cannot pick another file mid-upload */}
               <input
+                ref={fileInputRef}
                 type="file"
                 accept="image/*"
                 required
-                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                className="w-full text-xs file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-[#ffdfa5] file:text-amber-900 file:font-semibold"
+                disabled={isUploading}
+                onChange={(e) => {
+                  setSelectedFile(e.target.files?.[0] || null);
+                  setSuccessMsg(null);
+                  setErrorMsg(null);
+                }}
+                className="w-full text-xs file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-[#ffdfa5] file:text-amber-900 file:font-semibold disabled:opacity-50 disabled:cursor-not-allowed file:disabled:cursor-not-allowed"
               />
-              {errorMsg && <p className="text-xs text-red-600">{errorMsg}</p>}
+
+              {errorMsg && (
+                <p className="text-xs text-red-600 font-medium">{errorMsg}</p>
+              )}
+              {successMsg && (
+                <p className="text-xs text-emerald-700 font-medium">
+                  {successMsg}
+                </p>
+              )}
+
               <button
                 type="submit"
                 disabled={!selectedFile || isUploading}
-                className="w-full py-2.5 bg-[#f4917b] text-[#222432] font-bold rounded-lg text-xs flex items-center justify-center gap-2 disabled:opacity-40"
+                className="w-full py-2.5 bg-[#f4917b] text-[#222432] font-bold rounded-lg text-xs flex items-center justify-center gap-2 hover:bg-[#ffc7b9] transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <Upload className="w-4 h-4" />
-                {isUploading ? "Uploading Proof..." : "Submit Payment Proof"}
+                {hasUploadedProof ? (
+                  <RefreshCw
+                    className={`w-4 h-4 ${isUploading ? "animate-spin" : ""}`}
+                  />
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+                {isUploading
+                  ? "Uploading Proof..."
+                  : hasUploadedProof
+                  ? "Re-upload Payment Proof"
+                  : "Submit Payment Proof"}
               </button>
             </form>
           )}
