@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router";
-import { Eye, RefreshCw, AlertCircle } from "lucide-react";
+import { Eye, RefreshCw, AlertCircle, Star } from "lucide-react";
 import { axiosInstance } from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 
@@ -13,7 +13,7 @@ export type TransactionStatus =
   | "EXPIRED"
   | "CANCELED";
 
-// 2. Transaction type matching backend response
+// 2. Transaction type matching backend response (including endDate & attendances.reviews)
 export type Transaction = {
   id: number;
   status: TransactionStatus;
@@ -26,6 +26,14 @@ export type Transaction = {
   adminDeadline: string | null;
   paymentProof: string | null;
   createdAt: string;
+  attendances?: {
+    id: number;
+    reviews?: {
+      id: number;
+      rating: number;
+      comment: string;
+    }[];
+  }[];
   transactionItems: {
     id: number;
     quantity: number;
@@ -33,7 +41,9 @@ export type Transaction = {
     ticketType: {
       name: string;
       event: {
+        id?: number;
         name: string;
+        endDate?: string;
       };
     };
   }[];
@@ -60,7 +70,7 @@ const statusStyles: Record<TransactionStatus, string> = {
 };
 
 export function CustomerTransactions() {
-  // 5. Initialize React Router navigation hook for redirecting to TransactionPaymentPage
+  // 5. Initialize React Router navigation hook
   const navigate = useNavigate();
 
   // 6. Regular state for transactions list, loading, error, and status filter
@@ -123,7 +133,20 @@ export function CustomerTransactions() {
       0
     );
 
-  // 13. Filter transactions by status
+  // 13. Pure helper: Check if event's endDate < current date
+  const hasEventEnded = (transaction: Transaction): boolean => {
+    const endDateStr =
+      transaction.transactionItems?.[0]?.ticketType?.event?.endDate;
+    if (!endDateStr) return false;
+    return new Date(endDateStr).getTime() < Date.now();
+  };
+
+  // 14. Pure helper: Check if customer already submitted a review for this transaction
+  const hasAlreadyReviewed = (transaction: Transaction): boolean => {
+    return (transaction.attendances?.[0]?.reviews?.length ?? 0) > 0;
+  };
+
+  // 15. Filter transactions by status
   const filteredTransactions =
     statusFilter === "ALL"
       ? transactions
@@ -138,7 +161,7 @@ export function CustomerTransactions() {
             My Transactions
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            View your transaction history and payment details.
+            View your transaction history, payment details, and review past events.
           </p>
         </div>
 
@@ -226,58 +249,96 @@ export function CustomerTransactions() {
                   </td>
                 </tr>
               ) : filteredTransactions.length > 0 ? (
-                filteredTransactions.map((transaction) => (
-                  <tr
-                    key={transaction.id}
-                    className="transition-colors hover:bg-gray-50"
-                  >
-                    <td className="min-w-52 px-6 py-4">
-                      <p className="font-medium text-gray-900">
-                        {getEventNames(transaction)}
-                      </p>
-                      <p className="mt-1 text-xs text-gray-500">
-                        Transaction #{transaction.id}
-                      </p>
-                    </td>
+                filteredTransactions.map((transaction) => {
+                  // Check Review Button eligibility: status === "DONE" AND event.endDate < current date
+                  const canShowReviewButton =
+                    transaction.status === "DONE" &&
+                    hasEventEnded(transaction) &&
+                    !hasAlreadyReviewed(transaction);
 
-                    <td className="whitespace-nowrap px-6 py-4 text-gray-600">
-                      {formatDate(transaction.createdAt)}
-                    </td>
+                  const isReviewed =
+                    transaction.status === "DONE" &&
+                    hasAlreadyReviewed(transaction);
 
-                    <td className="px-6 py-4 text-center text-gray-600">
-                      {getTotalTickets(transaction)}
-                    </td>
+                  return (
+                    <tr
+                      key={transaction.id}
+                      className="transition-colors hover:bg-gray-50"
+                    >
+                      <td className="min-w-52 px-6 py-4">
+                        <p className="font-medium text-gray-900">
+                          {getEventNames(transaction)}
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Transaction #{transaction.id}
+                        </p>
+                      </td>
 
-                    <td className="whitespace-nowrap px-6 py-4 font-medium text-gray-900">
-                      {formatCurrency(transaction.totalAmount)}
-                    </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                        {formatDate(transaction.createdAt)}
+                      </td>
 
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${
-                          statusStyles[transaction.status]
-                        }`}
-                      >
-                        {statusLabels[transaction.status]}
-                      </span>
-                    </td>
+                      <td className="px-6 py-4 text-center text-gray-600">
+                        {getTotalTickets(transaction)}
+                      </td>
 
-                    {/* Redirects directly to TransactionPaymentPage (/transactions/:id) */}
-                    <td className="px-6 py-4 text-center">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        onClick={() =>
-                          navigate(`/transactions/${transaction.id}`)
-                        }
-                      >
-                        <Eye className="h-4 w-4" />
-                        View Details
-                      </Button>
-                    </td>
-                  </tr>
-                ))
+                      <td className="whitespace-nowrap px-6 py-4 font-medium text-gray-900">
+                        {formatCurrency(transaction.totalAmount)}
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${
+                            statusStyles[transaction.status]
+                          }`}
+                        >
+                          {statusLabels[transaction.status]}
+                        </span>
+                      </td>
+
+                      {/* Actions Column: View Details + Conditional Review Button */}
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={() =>
+                              navigate(`/transactions/${transaction.id}`)
+                            }
+                          >
+                            <Eye className="h-4 w-4" />
+                            View Details
+                          </Button>
+
+                          {/* Review Button: ONLY appears when status === "DONE" and event.endDate < now */}
+                          {canShowReviewButton && (
+                            <Button
+                              size="sm"
+                              className="gap-1.5 bg-[#f4917b] text-[#222432] hover:bg-[#ffc7b9] font-semibold"
+                              onClick={() =>
+                                navigate(
+                                  `/transactions/${transaction.id}#review`
+                                )
+                              }
+                            >
+                              <Star className="h-3.5 w-3.5 fill-[#222432]" />
+                              Review
+                            </Button>
+                          )}
+
+                          {/* Reviewed Badge if customer already submitted a review */}
+                          {isReviewed && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                              Reviewed
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td
