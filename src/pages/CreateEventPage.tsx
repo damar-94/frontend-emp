@@ -3,7 +3,7 @@ import { Navbar } from "@/components/Navbar";
 import { axiosInstance } from "@/lib/axios";
 import type { LocCity, LocProvince } from "@/types/location.types";
 import { Plus, Trash2, Upload } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { getCitiesByProvince, getProvinces } from "../api/locationApi";
 import { useCategories } from "@/hooks/API/category/useGetCategories";
@@ -58,6 +58,25 @@ export const CreateEventPage: React.FC = () => {
 
   const selectedProvince = watch("provinceId");
   const enablePromotion = watch("enablePromotion");
+
+  // Watched date values for dynamic calendar boundaries
+  const watchStartDate = watch("startDate");
+  const watchEndDate = watch("endDate");
+  const watchVoucherStart = watch("voucher.startAt");
+
+  // Helper to format Date into YYYY-MM-DDTHH:mm for datetime-local min/max
+  const formatDateTimeLocal = (date: Date) => {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  // Get current timestamp formatted for input min
+  const currentDateTimeString = useMemo(() => formatDateTimeLocal(new Date()), []);
 
   useEffect(() => {
     getProvinces().then(setProvinces);
@@ -119,7 +138,7 @@ export const CreateEventPage: React.FC = () => {
   return (
     <div className="bg-[#fbf7f4]">
       <Navbar />
-      <div className="max-w-4xl mx-auto px-4 py-10 ">
+      <div className="max-w-4xl mx-auto px-4 py-10">
         <h1 className="text-2xl font-bold text-slate-900 mb-6">
           Create New <span className="text-[#f4917b]">Event</span>
         </h1>
@@ -212,7 +231,7 @@ export const CreateEventPage: React.FC = () => {
               )}
             </div>
 
-            {/*  Location Pickers */}
+            {/* Location Pickers */}
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">
                 Province
@@ -248,26 +267,54 @@ export const CreateEventPage: React.FC = () => {
               </select>
             </div>
 
+            {/* Event Start Date */}
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">
                 Start Date & Time
               </label>
               <input
                 type="datetime-local"
-                {...register("startDate", { required: true })}
+                min={currentDateTimeString}
+                {...register("startDate", {
+                  required: "Start date is required",
+                  validate: (value) =>
+                    new Date(value) >= new Date() ||
+                    "Start date cannot be in the past",
+                })}
                 className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#f4917b] outline-none"
               />
+              {errors.startDate && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.startDate.message}
+                </p>
+              )}
             </div>
 
+            {/* Event End Date */}
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">
                 End Date & Time
               </label>
               <input
                 type="datetime-local"
-                {...register("endDate", { required: true })}
+                min={watchStartDate || currentDateTimeString}
+                {...register("endDate", {
+                  required: "End date is required",
+                  validate: (value) => {
+                    if (!watchStartDate) return true;
+                    return (
+                      new Date(value) >= new Date(watchStartDate) ||
+                      "End date must be after start date"
+                    );
+                  },
+                })}
                 className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#f4917b] outline-none"
               />
+              {errors.endDate && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.endDate.message}
+                </p>
+              )}
             </div>
           </div>
 
@@ -301,14 +348,14 @@ export const CreateEventPage: React.FC = () => {
               <div className="flex-1">Ticket Name</div>
               <div className="w-32">Price</div>
               <div className="w-24">Seat Quota</div>
-              {fields.length > 1 && <div className="w-4" />}{" "}
+              {fields.length > 1 && <div className="w-4" />}
             </div>
 
             <div className="space-y-3">
               {fields.map((field, index) => (
                 <div
                   key={field.id}
-                  className="flex gap-3 items-center  p-3 rounded-lg border border-[#ffc7b9]"
+                  className="flex gap-3 items-center p-3 rounded-lg border border-[#ffc7b9]"
                 >
                   <input
                     placeholder="Ticket Name (e.g. VIP / Free Pass)"
@@ -363,17 +410,25 @@ export const CreateEventPage: React.FC = () => {
             </label>
 
             {enablePromotion && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4  rounded-xl border border-[#ffc7b9]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl border border-[#ffc7b9]">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">
                     Voucher Code
                   </label>
                   <input
-                    {...register("voucher.code")}
+                    {...register("voucher.code", {
+                      required: enablePromotion ? "Voucher code is required" : false,
+                    })}
                     placeholder="e.g. EARLYBIRD2026"
                     className="w-full px-3 py-2 border rounded-lg text-sm bg-white uppercase"
                   />
+                  {errors.voucher?.code && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.voucher.code.message}
+                    </p>
+                  )}
                 </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">
                     Discount Amount (IDR)
@@ -381,43 +436,109 @@ export const CreateEventPage: React.FC = () => {
                   <input
                     type="number"
                     {...register("voucher.discountValue", {
+                      required: enablePromotion ? "Discount amount is required" : false,
                       valueAsNumber: true,
                     })}
                     placeholder="50000"
                     className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
                   />
+                  {errors.voucher?.discountValue && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.voucher.discountValue.message}
+                    </p>
+                  )}
                 </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">
                     Max Usages
                   </label>
                   <input
                     type="number"
-                    {...register("voucher.maxUsage", { valueAsNumber: true })}
+                    {...register("voucher.maxUsage", {
+                      required: enablePromotion ? "Max usages is required" : false,
+                      valueAsNumber: true,
+                    })}
                     placeholder="50"
                     className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
                   />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    Start Date
-                  </label>
-                  <input
-                    type="datetime-local"
-                    {...register("voucher.startAt")}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
-                  />
+                  {errors.voucher?.maxUsage && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.voucher.maxUsage.message}
+                    </p>
+                  )}
                 </div>
 
+                {/* Voucher Start Date */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    Expiration Date
+                    Voucher Start Date
                   </label>
                   <input
                     type="datetime-local"
-                    {...register("voucher.expiresAt")}
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
+                    min={currentDateTimeString}
+                    max={watchEndDate || undefined}
+                    {...register("voucher.startAt", {
+                      required: enablePromotion ? "Voucher start date is required" : false,
+                      validate: (value) => {
+                        if (!enablePromotion || !value) return true;
+                        if (new Date(value) < new Date()) {
+                          return "Voucher start date cannot be in the past";
+                        }
+                        if (watchEndDate && new Date(value) > new Date(watchEndDate)) {
+                          return "Voucher cannot start after the event ends";
+                        }
+                        return true;
+                      },
+                    })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#f4917b] outline-none"
                   />
+                  {errors.voucher?.startAt && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.voucher.startAt.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Voucher Expiration Date */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Voucher Expiration Date
+                  </label>
+                  <input
+                    type="datetime-local"
+                    min={
+                      // Must be greater than or equal to voucher start date AND event start date
+                      watchVoucherStart && watchStartDate
+                        ? watchVoucherStart > watchStartDate
+                          ? watchVoucherStart
+                          : watchStartDate
+                        : watchVoucherStart || watchStartDate || currentDateTimeString
+                    }
+                    {...register("voucher.expiresAt", {
+                      required: enablePromotion ? "Expiration date is required" : false,
+                      validate: (value) => {
+                        if (!enablePromotion || !value) return true;
+                        const expDate = new Date(value);
+
+                        if (watchVoucherStart && expDate < new Date(watchVoucherStart)) {
+                          return "Expiration date cannot be earlier than voucher start date";
+                        }
+
+                        if (watchStartDate && expDate < new Date(watchStartDate)) {
+                          return "Expiration date cannot be earlier than event start date";
+                        }
+
+                        return true;
+                      },
+                    })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#f4917b] outline-none"
+                  />
+                  {errors.voucher?.expiresAt && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.voucher.expiresAt.message}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
