@@ -102,9 +102,11 @@ export function DashboardSidebar({ role }: DashboardSidebarProps) {
     }`;
 
   return (
-    <div className="p-4">
+    <div className="min-w-0 p-4">
       <div className="mb-8 px-2">
-        <Link to="/" className="text-xl font-bold text-gray-900">EventTix</Link>
+        <Link to="/" className="text-xl font-bold text-gray-900">
+          EventTix
+        </Link>
 
         <p className="mt-1 text-sm text-gray-500">
           {role === "ADMIN"
@@ -129,8 +131,8 @@ export function DashboardSidebar({ role }: DashboardSidebarProps) {
               }
               className={({ isActive }) => linkClassName(isActive)}
             >
-              <Icon className="h-5 w-5" />
-              {item.label}
+              <Icon className="h-5 w-5 shrink-0" />
+              <span className="min-w-0 wrap-break-word">{item.label}</span>
             </NavLink>
           );
         })}

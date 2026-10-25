@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 
 import {
@@ -9,25 +9,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
 import { Button } from "@/components/ui/button";
+import { useFindEventGuestList } from "@/hooks/API/dashboard/organizerDashboard/useFindEventGuestList";
 
-import type { EventItem } from "./EditEventDialog";
-
-interface Guest {
+interface GuestListEvent {
   id: number;
   name: string;
-  ticketQuantity: number;
-  totalPaid: number;
-}
-
-interface EventGuestList {
-  eventId: number;
-  guests: Guest[];
 }
 
 interface GuestListDialogProps {
-  event: EventItem | null;
+  event: GuestListEvent | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -40,36 +31,6 @@ const currencyFormatter = new Intl.NumberFormat("id-ID", {
   maximumFractionDigits: 0,
 });
 
-const initialGuestLists: EventGuestList[] = [
-  {
-    eventId: 1,
-    guests: [
-      { id: 1, name: "Andi Pratama", ticketQuantity: 2, totalPaid: 500000 },
-      { id: 2, name: "Siti Rahma", ticketQuantity: 1, totalPaid: 250000 },
-      { id: 3, name: "Budi Santoso", ticketQuantity: 3, totalPaid: 750000 },
-      { id: 4, name: "Dewi Anggraini", ticketQuantity: 2, totalPaid: 500000 },
-      { id: 5, name: "Rizky Saputra", ticketQuantity: 1, totalPaid: 250000 },
-      { id: 6, name: "Nadia Putri", ticketQuantity: 2, totalPaid: 500000 },
-      { id: 7, name: "Fajar Ramadhan", ticketQuantity: 1, totalPaid: 250000 },
-    ],
-  },
-  {
-    eventId: 2,
-    guests: [
-      { id: 8, name: "Agus Setiawan", ticketQuantity: 1, totalPaid: 300000 },
-      { id: 9, name: "Maya Lestari", ticketQuantity: 2, totalPaid: 600000 },
-      { id: 10, name: "Dimas Putra", ticketQuantity: 1, totalPaid: 300000 },
-    ],
-  },
-  {
-    eventId: 3,
-    guests: [
-      { id: 11, name: "Rina Amelia", ticketQuantity: 1, totalPaid: 150000 },
-      { id: 12, name: "Yoga Pratama", ticketQuantity: 2, totalPaid: 300000 },
-    ],
-  },
-];
-
 export default function GuestListDialog({
   event,
   open,
@@ -78,20 +39,26 @@ export default function GuestListDialog({
   const [guestSearch, setGuestSearch] = useState("");
   const [guestPage, setGuestPage] = useState(1);
 
-  const selectedGuests =
-    initialGuestLists.find((guestList) => guestList.eventId === event?.id)
-      ?.guests ?? [];
+  const eventId = event?.id ?? 0;
 
-  const filteredGuests = selectedGuests.filter((guest) =>
-    guest.name.toLowerCase().includes(guestSearch.toLowerCase()),
-  );
+  const { data, isPending, isError, refetch } = useFindEventGuestList({
+    eventId,
+    page: guestPage,
+    take: guestsPerPage,
+    search: guestSearch,
+    enabled: open && eventId > 0,
+  });
 
-  const totalGuestPages = Math.ceil(filteredGuests.length / guestsPerPage);
+  const guests = data?.data ?? [];
+  const totalGuests = data?.meta.total ?? 0;
+  const totalGuestPages = Math.ceil(totalGuests / guestsPerPage);
 
-  const paginatedGuests = filteredGuests.slice(
-    (guestPage - 1) * guestsPerPage,
-    guestPage * guestsPerPage,
-  );
+  useEffect(() => {
+    if (!open) {
+      setGuestSearch("");
+      setGuestPage(1);
+    }
+  }, [open, event?.id]);
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
@@ -141,19 +108,52 @@ export default function GuestListDialog({
             </thead>
 
             <tbody>
-              {paginatedGuests.map((guest) => (
-                <tr key={guest.id} className="border-b last:border-0">
-                  <td className="px-4 py-3 font-medium">{guest.name}</td>
-                  <td className="px-4 py-3 text-center">
-                    {guest.ticketQuantity}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {currencyFormatter.format(guest.totalPaid)}
+              {isPending && (
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="px-4 py-8 text-center text-muted-foreground"
+                  >
+                    Loading guest list...
                   </td>
                 </tr>
-              ))}
+              )}
 
-              {filteredGuests.length === 0 && (
+              {!isPending && isError && (
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="px-4 py-8 text-center text-destructive"
+                  >
+                    Failed to load guest list.
+                    <div className="mt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => refetch()}
+                      >
+                        Try again
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              )}
+
+              {!isPending &&
+                !isError &&
+                guests.map((guest) => (
+                  <tr key={guest.id} className="border-b last:border-0">
+                    <td className="px-4 py-3 font-medium">{guest.name}</td>
+                    <td className="px-4 py-3 text-center">
+                      {guest.ticketQuantity}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {currencyFormatter.format(guest.totalAmount)}
+                    </td>
+                  </tr>
+                ))}
+
+              {!isPending && !isError && guests.length === 0 && (
                 <tr>
                   <td
                     colSpan={3}
@@ -167,21 +167,12 @@ export default function GuestListDialog({
           </table>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground">
-            {filteredGuests.length === 0
-              ? "No participants"
-              : `Showing ${(guestPage - 1) * guestsPerPage + 1}–${Math.min(
-                  guestPage * guestsPerPage,
-                  filteredGuests.length,
-                )} of ${filteredGuests.length} participants`}
-          </p>
-
-          <div className="flex items-center justify-end gap-2">
+        <div className="flex justify-end">
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
-              disabled={guestPage <= 1}
+              disabled={guestPage <= 1 || isPending}
               onClick={() => setGuestPage((page) => page - 1)}
             >
               Previous
@@ -194,14 +185,17 @@ export default function GuestListDialog({
             <Button
               variant="outline"
               size="sm"
-              disabled={totalGuestPages === 0 || guestPage >= totalGuestPages}
+              disabled={
+                totalGuestPages === 0 ||
+                guestPage >= totalGuestPages ||
+                isPending
+              }
               onClick={() => setGuestPage((page) => page + 1)}
             >
               Next
             </Button>
           </div>
         </div>
-
         <DialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)}>
             Close

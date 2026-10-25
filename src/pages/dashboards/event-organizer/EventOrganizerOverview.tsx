@@ -1,3 +1,9 @@
+import { useGetOrganizerSalesAnalytics } from "@/hooks/API/dashboard/organizerDashboard/useGetSalesAnalytics";
+import { useGetOrganizerTotalEvents } from "@/hooks/API/dashboard/organizerDashboard/useGetTotalEvents";
+import { useGetTotalRevenue } from "@/hooks/API/dashboard/organizerDashboard/useGetTotalRevenue";
+import { useGetTotalTicketSold } from "@/hooks/API/dashboard/organizerDashboard/useGetTotalTicketSold";
+import type { LucideIcon } from "lucide-react";
+import { CalendarDays, Ticket, Wallet } from "lucide-react";
 import { useState } from "react";
 import {
   CartesianGrid,
@@ -8,8 +14,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { CalendarDays, Clock, Ticket, Wallet } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
 interface SummaryCard {
   title: string;
@@ -20,66 +24,26 @@ interface SummaryCard {
 const summaryCards: SummaryCard[] = [
   {
     title: "Total Events",
-    value: "12",
+    value: "0",
     description: "Events you have created",
     icon: CalendarDays,
   },
   {
     title: "Tickets Sold",
-    value: "1,248",
+    value: "0",
     description: "From approved transactions",
     icon: Ticket,
   },
   {
     title: "Total Revenue",
-    value: "Rp 125.500.000",
+    value: "0",
     description: "From approved transactions",
     icon: Wallet,
-  },
-  {
-    title: "Pending Payments",
-    value: "8",
-    description: "Awaiting payment verification",
-    icon: Clock,
   },
 ];
 
 type Metric = "tickets" | "revenue";
 type Period = "year" | "month" | "day";
-
-interface ChartData {
-  label: string;
-  tickets: number;
-  revenue: number;
-}
-
-const monthlyData: ChartData[] = [
-  { label: "Jan", tickets: 120, revenue: 12000000 },
-  { label: "Feb", tickets: 180, revenue: 18000000 },
-  { label: "Mar", tickets: 150, revenue: 15000000 },
-  { label: "Apr", tickets: 220, revenue: 22000000 },
-  { label: "May", tickets: 190, revenue: 19000000 },
-  { label: "Jun", tickets: 280, revenue: 28000000 },
-  { label: "Jul", tickets: 240, revenue: 24000000 },
-  { label: "Aug", tickets: 310, revenue: 31000000 },
-  { label: "Sep", tickets: 270, revenue: 27000000 },
-  { label: "Oct", tickets: 350, revenue: 35000000 },
-  { label: "Nov", tickets: 300, revenue: 30000000 },
-  { label: "Dec", tickets: 400, revenue: 40000000 },
-];
-
-const dailyData: ChartData[] = Array.from({ length: 31 }, (_, index) => ({
-  label: String(index + 1),
-  tickets: 10 + ((index * 7 + 13) % 35),
-  revenue: (10 + ((index * 7 + 13) % 35)) * 100000,
-}));
-
-const hourlyData: ChartData[] = Array.from({ length: 24 }, (_, index) => ({
-  label: `${String(index).padStart(2, "0")}:00`,
-  tickets: index >= 8 && index <= 21 ? 5 + ((index * 3 + 7) % 20) : 0,
-  revenue:
-    index >= 8 && index <= 21 ? (5 + ((index * 3 + 7) % 20)) * 100000 : 0,
-}));
 
 const formatRupiah = (value: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -89,26 +53,47 @@ const formatRupiah = (value: number) =>
   }).format(value);
 
 export default function EventOrganizerOverview() {
+  const {
+    data: totalEvents,
+    isError,
+    isPending,
+  } = useGetOrganizerTotalEvents();
+
+  const {
+    data: totalTicketSold,
+    isError: totalTicketSoldError,
+    isPending: totalTicketSoldPending,
+  } = useGetTotalTicketSold();
+
+  const {
+    data: totalRevenue,
+    isError: totalRevenueError,
+    isPending: totalRevenuePending,
+  } = useGetTotalRevenue();
+
   const [metric, setMetric] = useState<Metric>("tickets");
   const [period, setPeriod] = useState<Period>("year");
-  const [selectedYear, setSelectedYear] = useState("2026");
-  const [selectedMonth, setSelectedMonth] = useState("10");
+
   const [selectedDate, setSelectedDate] = useState("2026-10-19");
 
-  const chartData =
-    period === "year"
-      ? monthlyData
-      : period === "month"
-        ? dailyData.filter((item) => {
-            const daysInMonth = new Date(
-              Number(selectedYear),
-              Number(selectedMonth),
-              0,
-            ).getDate();
+  const selectedYear = selectedDate.slice(0, 4);
+  const selectedMonth = selectedDate.slice(5, 7);
 
-            return Number(item.label) <= daysInMonth;
-          })
-        : hourlyData;
+  const updateSelectedDate = (year: string, month: string, day: number) => {
+    const daysInMonth = new Date(Number(year), Number(month), 0).getDate();
+
+    const validDay = Math.min(day, daysInMonth);
+
+    setSelectedDate(`${year}-${month}-${String(validDay).padStart(2, "0")}`);
+  };
+
+  const {
+    data: salesAnalytics,
+    isPending: salesAnalyticsPending,
+    isError: salesAnalyticsError,
+  } = useGetOrganizerSalesAnalytics(period, selectedDate);
+
+  const chartData = salesAnalytics ?? [];
 
   const chartTitle = metric === "tickets" ? "Tickets Sold" : "Revenue";
 
@@ -134,6 +119,27 @@ export default function EventOrganizerOverview() {
         {summaryCards.map((card) => {
           const Icon = card.icon;
 
+          const value =
+            card.title === "Total Events"
+              ? isPending
+                ? "Loading..."
+                : isError
+                  ? "Error"
+                  : String(totalEvents ?? 0)
+              : card.title === "Tickets Sold"
+                ? totalTicketSoldPending
+                  ? "Loading..."
+                  : totalTicketSoldError
+                    ? "Error"
+                    : String(totalTicketSold ?? 0)
+                : card.title === "Total Revenue"
+                  ? totalRevenuePending
+                    ? "Loading..."
+                    : totalRevenueError
+                      ? "Error"
+                      : formatRupiah(totalRevenue ?? 0)
+                    : card.value;
+
           return (
             <div
               key={card.title}
@@ -145,9 +151,7 @@ export default function EventOrganizerOverview() {
                     {card.title}
                   </p>
 
-                  <p className="text-2xl font-bold tracking-tight">
-                    {card.value}
-                  </p>
+                  <p className="text-2xl font-bold tracking-tight">{value}</p>
                 </div>
 
                 <div className="rounded-lg bg-pink-50 p-2.5 text-pink-600">
@@ -196,7 +200,13 @@ export default function EventOrganizerOverview() {
             {period === "year" && (
               <select
                 value={selectedYear}
-                onChange={(event) => setSelectedYear(event.target.value)}
+                onChange={(event) =>
+                  updateSelectedDate(
+                    event.target.value,
+                    selectedMonth,
+                    Number(selectedDate.slice(8, 10)),
+                  )
+                }
                 className="h-9 rounded-md border bg-background px-3 text-sm"
               >
                 <option value="2025">2025</option>
@@ -208,7 +218,13 @@ export default function EventOrganizerOverview() {
             {period === "month" && (
               <select
                 value={selectedMonth}
-                onChange={(event) => setSelectedMonth(event.target.value)}
+                onChange={(event) =>
+                  updateSelectedDate(
+                    selectedYear,
+                    event.target.value,
+                    Number(selectedDate.slice(8, 10)),
+                  )
+                }
                 className="h-9 rounded-md border bg-background px-3 text-sm"
               >
                 {Array.from({ length: 12 }, (_, index) => {
@@ -216,9 +232,12 @@ export default function EventOrganizerOverview() {
 
                   return (
                     <option key={month} value={month}>
-                      {new Date(2026, index).toLocaleString("en-US", {
-                        month: "long",
-                      })}
+                      {new Date(Number(selectedYear), index).toLocaleString(
+                        "en-US",
+                        {
+                          month: "long",
+                        },
+                      )}
                     </option>
                   );
                 })}
@@ -237,64 +256,77 @@ export default function EventOrganizerOverview() {
         </div>
 
         <div className="mt-6 h-80 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={chartData}
-              margin={{ top: 10, right: 16, left: 12, bottom: 4 }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#E5E7EB"
-              />
+          {salesAnalyticsPending ? (
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              Loading sales analytics...
+            </div>
+          ) : salesAnalyticsError ? (
+            <div className="flex h-full items-center justify-center text-sm text-destructive">
+              Failed to load sales analytics.
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={chartData}
+                margin={{ top: 10, right: 16, left: 12, bottom: 4 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#E5E7EB"
+                />
 
-              <XAxis
-                dataKey="label"
-                tickLine={false}
-                axisLine={false}
-                tick={{ fontSize: 12 }}
-              />
+                <XAxis
+                  dataKey="label"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 12 }}
+                />
 
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                width={metric === "revenue" ? 100 : 45}
-                tick={{ fontSize: 12 }}
-                tickFormatter={(value: number) =>
-                  metric === "revenue"
-                    ? value >= 1000000
-                      ? `Rp ${(value / 1000000).toLocaleString("id-ID")} jt`
-                      : `Rp ${value.toLocaleString("id-ID")}`
-                    : value.toLocaleString("id-ID")
-                }
-              />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  width={metric === "revenue" ? 100 : 45}
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={(value: number) =>
+                    metric === "revenue"
+                      ? value >= 1000000
+                        ? `Rp ${(value / 1000000).toLocaleString("id-ID")} jt`
+                        : `Rp ${value.toLocaleString("id-ID")}`
+                      : value.toLocaleString("id-ID")
+                  }
+                />
 
-              <Tooltip
-                formatter={(value) => [formatMetric(Number(value)), chartTitle]}
-                labelFormatter={(label) =>
-                  period === "year"
-                    ? `${label} ${selectedYear}`
-                    : period === "month"
-                      ? `${label}/${selectedMonth}/${selectedYear}`
-                      : `${selectedDate} · ${label}`
-                }
-                contentStyle={{
-                  borderRadius: 12,
-                  border: "1px solid #E5E7EB",
-                }}
-              />
+                <Tooltip
+                  formatter={(value) => [
+                    formatMetric(Number(value)),
+                    chartTitle,
+                  ]}
+                  labelFormatter={(label) =>
+                    period === "year"
+                      ? `${label} ${selectedYear}`
+                      : period === "month"
+                        ? `${label}/${selectedMonth}/${selectedYear}`
+                        : `${selectedDate} · ${label}`
+                  }
+                  contentStyle={{
+                    borderRadius: 12,
+                    border: "1px solid #E5E7EB",
+                  }}
+                />
 
-              <Line
-                type="monotone"
-                dataKey={metric}
-                name={chartTitle}
-                stroke={chartColor}
-                strokeWidth={2.5}
-                dot={false}
-                activeDot={{ r: 5 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+                <Line
+                  type="monotone"
+                  dataKey={metric}
+                  name={chartTitle}
+                  stroke={chartColor}
+                  strokeWidth={2.5}
+                  dot={false}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
     </div>

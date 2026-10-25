@@ -1,6 +1,30 @@
+import { useGetTotalCustomer } from "@/hooks/API/dashboard/adminDasboard/useGetTotalCustomers";
 import { Users, CalendarDays, Tags, UserRound } from "lucide-react";
+import { useGetTotalEvents } from "@/hooks/API/dashboard/adminDasboard/useGetTotalEvents";
+import { useGetTotalCategories } from "@/hooks/API/dashboard/adminDasboard/useGetTotalCategories";
+import { useGetTotalOrganizer } from "@/hooks/API/dashboard/adminDasboard/useGetTotalOrganizers";
 
 export function AdminOverview() {
+  const { data, isLoading, isError } = useGetTotalCustomer();
+
+  const {
+    data: totalEventsData,
+    isLoading: isTotalEventsLoading,
+    isError: isTotalEventsError,
+  } = useGetTotalEvents();
+
+  const {
+    data: totalCategoriesData,
+    isLoading: isTotalCategoriesLoading,
+    isError: isTotalCategoriesError,
+  } = useGetTotalCategories();
+
+  const {
+    data: totalOrganizersData,
+    isLoading: isTotalOrganizersLoading,
+    isError: isTotalOrganizersError,
+  } = useGetTotalOrganizer();
+
   return (
     <>
       {/* Page Header */}
@@ -23,7 +47,14 @@ export function AdminOverview() {
             <Users className="h-5 w-5 text-gray-400" />
           </div>
 
-          <p className="mt-3 text-3xl font-bold">—</p>
+          {/* Total Customer dari database */}
+          <p className="mt-3 text-3xl font-bold">
+            {isLoading
+              ? "..."
+              : isError
+                ? "Gagal"
+                : (data?.totalCustomers ?? 0)}
+          </p>
         </div>
 
         {/* Total Events */}
@@ -33,7 +64,13 @@ export function AdminOverview() {
             <CalendarDays className="h-5 w-5 text-gray-400" />
           </div>
 
-          <p className="mt-3 text-3xl font-bold">—</p>
+          <p className="mt-3 text-3xl font-bold">
+            {isTotalEventsLoading
+              ? "..."
+              : isTotalEventsError
+                ? "Gagal"
+                : (totalEventsData?.totalEvents ?? 0)}
+          </p>
         </div>
 
         {/* Categories */}
@@ -43,7 +80,13 @@ export function AdminOverview() {
             <Tags className="h-5 w-5 text-gray-400" />
           </div>
 
-          <p className="mt-3 text-3xl font-bold">—</p>
+          <p className="mt-3 text-3xl font-bold">
+            {isTotalCategoriesLoading
+              ? "..."
+              : isTotalCategoriesError
+                ? "Gagal"
+                : (totalCategoriesData?.totalCategories ?? 0)}
+          </p>
         </div>
 
         {/* Organizers */}
@@ -53,15 +96,19 @@ export function AdminOverview() {
             <UserRound className="h-5 w-5 text-gray-400" />
           </div>
 
-          <p className="mt-3 text-3xl font-bold">—</p>
+          <p className="mt-3 text-3xl font-bold">
+            {isTotalOrganizersLoading
+              ? "..."
+              : isTotalOrganizersError
+                ? "Gagal"
+                : (totalOrganizersData?.totalOrganizers ?? 0)}
+          </p>
         </div>
       </div>
 
       {/* Recent Activity */}
       <div className="mt-8 rounded-xl border bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900">
-          Recent Activity
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
 
         <p className="mt-2 text-sm text-gray-500">
           Recent platform activity will appear here.
