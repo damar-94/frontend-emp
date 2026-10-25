@@ -1,0 +1,49 @@
+import { useState } from "react"
+import { Rating } from "@/components/reui/rating"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+
+export function Pattern() {
+  const [rating, setRating] = useState(0)
+  const [review, setReview] = useState("")
+
+  return (
+    <Card className="mx-auto w-full max-w-xs">
+      <CardContent className="space-y-5">
+        <div className="flex flex-col items-center gap-3">
+          <h3 className="text-sm font-semibold">Write a Review</h3>
+          <Rating rating={rating} onRatingChange={setRating} editable />
+          {rating > 0 && (
+            <p className="text-muted-foreground text-xs">
+              {rating <= 2
+                ? "We're sorry to hear that"
+                : rating <= 3
+                  ? "Thanks for your feedback"
+                  : "Glad you enjoyed it!"}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="review-text" className="text-sm">
+            Your review
+          </Label>
+          <Textarea
+            id="review-text"
+            value={review}
+            onChange={(e) => setReview(e.target.value)}
+            placeholder="Tell us what you think..."
+            rows={3}
+          />
+        </div>
+
+        <Button disabled={rating === 0} size="sm" className="w-full">
+          Submit Review
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}

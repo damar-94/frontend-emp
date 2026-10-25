@@ -1,5 +1,4 @@
 import { createBrowserRouter } from "react-router";
-import { OrganizerRoute } from "./components/OrganizerRoute";
 import { guestLoader } from "./loaders/guestLoader";
 import { loginLoader } from "./loaders/loginLoader";
 import { CreateEventPage } from "./pages/CreateEventPage";
@@ -33,6 +32,7 @@ import EventOrganizerMyEvents from "./pages/dashboards/event-organizer/EventOrga
 import EventOrganizerTransactions from "./pages/dashboards/event-organizer/EventOrganizerTransactions";
 import { EventOrganizerReviews } from "./pages/dashboards/event-organizer/EventOrganizerReviews";
 import { adminDashboardLoader, customerDashboardLoader, organizerDashboardLoader } from "./loaders/roleDashboardLoader";
+import { organizerLoader } from "./loaders/organizerLoader";
 
 export const router = createBrowserRouter([
   {
@@ -60,11 +60,9 @@ export const router = createBrowserRouter([
   },
   {
     path: "/event-creation",
-    element: (
-      <OrganizerRoute>
-        <CreateEventPage />
-      </OrganizerRoute>
-    ),
+    element: 
+        <CreateEventPage />,
+    loader:organizerLoader,
   },
   {
     path: "/events",

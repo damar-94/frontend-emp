@@ -11,21 +11,39 @@ import { Calendar, ChevronRight, Loader2, MapPin, Ticket } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 
-const CATEGORIES = [
-  { id: 0, name: "All Categories" },
-  { id: 1, name: "Music" },
-  { id: 2, name: "Technology" },
-  { id: 3, name: "Workshop" },
-  { id: 4, name: "Sports" },
-];
+interface CategoryItem {
+  id: number;
+  name: string;
+}
 
 export function EventBrowsingSection() {
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [categoryId, setCategoryId] = useState<number>(0);
   const [location, setLocation] = useState<string>("All Locations");
   const [locations, setLocations] = useState<string[]>(["All Locations"]);
   const [events, setEvents] = useState<EventModel[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
+  // 1. Fetch Categories dynamically from database
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await axiosInstance.get("/categories");
+        const list = Array.isArray(res.data?.data)
+          ? res.data.data
+          : Array.isArray(res.data)
+            ? res.data
+            : [];
+        setCategories(list);
+      } catch (err) {
+        console.error("Failed to fetch categories:", err);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  // 2. Fetch Events based on active filters
   useEffect(() => {
     const fetchEvents = async () => {
       setLoading(true);
@@ -46,6 +64,7 @@ export function EventBrowsingSection() {
     fetchEvents();
   }, [categoryId, location]);
 
+  // Extract unique locations from events
   useEffect(() => {
     if (location === "All Locations" && events.length > 0) {
       const uniqueCities = Array.from(
@@ -118,9 +137,20 @@ export function EventBrowsingSection() {
         </div>
       </div>
 
-      {/* Category Filter Pills */}
+      {/* Dynamic Category Filter Pills */}
       <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-4 scrollbar-none no-scrollbar">
-        {CATEGORIES.map((cat) => (
+        <button
+          onClick={() => setCategoryId(0)}
+          className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all shrink-0 ${
+            categoryId === 0
+              ? "bg-[#f4917b] text-white shadow-sm"
+              : "bg-white text-slate-600 border border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+          }`}
+        >
+          All Categories
+        </button>
+
+        {categories.map((cat) => (
           <button
             key={cat.id}
             onClick={() => setCategoryId(cat.id)}

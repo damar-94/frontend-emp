@@ -1,25 +1,57 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { useParams } from "react-router";
-import { Clock, Upload, CheckCircle2, XCircle } from "lucide-react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useParams, useNavigate, useLocation } from "react-router";
+import {
+  Clock,
+  Upload,
+  CheckCircle2,
+  XCircle,
+  ArrowLeft,
+  ExternalLink,
+  RefreshCw,
+  MessageSquarePlus,
+  Sparkles,
+} from "lucide-react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 import { axiosInstance } from "@/lib/axios";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import type { TransactionDetailModel } from "@/types/transaction.types";
 
+// shadcn UI & ReUI imports
+import { Rating } from "@/components/reui/rating";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
 export const TransactionPaymentPage: React.FC = () => {
-  // 1. Support both `/transactions/:transactionId` and `/transactions/:id` route definitions
   const params = useParams<{ transactionId?: string; id?: string }>();
   const transactionId = params.transactionId || params.id;
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // 2. Regular state for transaction data, loading, countdown seconds, and file upload
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Transaction state
   const [transaction, setTransaction] = useState<TransactionDetailModel | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [remainingSeconds, setRemainingSeconds] = useState<number>(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // 3. Pure function to load transaction from backend (memoized with useCallback)
+  // shadcn Rating review state
+  const [showReviewForm, setShowReviewForm] = useState<boolean>(
+    location.hash === "#review"
+  );
+  const [rating, setRating] = useState<number>(0);
+  const [comment, setComment] = useState<string>("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState<boolean>(false);
+
+  // Load transaction from backend
   const fetchTransaction = useCallback(async () => {
     if (!transactionId) {
       setErrorMsg("Invalid transaction ID in URL.");
@@ -38,12 +70,17 @@ export const TransactionPaymentPage: React.FC = () => {
     }
   }, [transactionId]);
 
-  // 4. Initial fetch on mount
   useEffect(() => {
     fetchTransaction();
   }, [fetchTransaction]);
 
-  // 5. 2-Hour Real-time Countdown Timer Effect
+  useEffect(() => {
+    if (location.hash === "#review") {
+      setShowReviewForm(true);
+    }
+  }, [location.hash]);
+
+  // 2-Hour Countdown Timer
   useEffect(() => {
     if (!transaction || transaction.status !== "WAITING_FOR_PAYMENT") return;
 
@@ -56,7 +93,6 @@ export const TransactionPaymentPage: React.FC = () => {
 
       setRemainingSeconds(diffSec);
 
-      // When countdown reaches 0, re-fetch ONCE to trigger backend EXPIRED rollback
       if (diffSec === 0 && !hasTriggeredExpiryRefetch) {
         hasTriggeredExpiryRefetch = true;
         fetchTransaction();
@@ -65,11 +101,9 @@ export const TransactionPaymentPage: React.FC = () => {
 
     calculateRemaining();
     const interval = setInterval(calculateRemaining, 1000);
-
     return () => clearInterval(interval);
-  }, [transaction?.id, transaction?.status, transaction?.paymentDeadline, fetchTransaction]);
+  }, [transaction, fetchTransaction]);
 
-  // 6. Pure helper to format seconds as HH:MM:SS
   const formatCountdown = (totalSec: number): string => {
     const hrs = Math.floor(totalSec / 3600);
     const mins = Math.floor((totalSec % 3600) / 60);
@@ -77,21 +111,23 @@ export const TransactionPaymentPage: React.FC = () => {
     return [hrs, mins, secs].map((v) => String(v).padStart(2, "0")).join(":");
   };
 
-  // 7. Pure helper to format IDR currency
   const formatIDR = (v: number): string =>
-    new Intl.NumberFormat("en-ID", {
+    new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
       maximumFractionDigits: 0,
     }).format(v || 0);
 
-  // 8. Handler for submitting payment proof image via multipart/form-data
+  // Upload payment proof
   const handleUploadProof = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!selectedFile || !transactionId) return;
+    if (!selectedFile || !transactionId || isUploading) return;
+
+    const isReupload = transaction?.status === "WAITING_FOR_ADMIN_CONFIRMATION";
 
     setIsUploading(true);
     setErrorMsg(null);
+    setSuccessMsg(null);
 
     const formData = new FormData();
     formData.append("paymentProof", selectedFile);
@@ -103,14 +139,79 @@ export const TransactionPaymentPage: React.FC = () => {
         { headers: { "Content-Type": "multipart/form-data" } }
       );
       setTransaction(res.data.data);
+
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      const msg = isReupload
+        ? "Payment proof successfully re-uploaded!"
+        : "Payment proof uploaded! Waiting for organizer confirmation.";
+      setSuccessMsg(msg);
+      toast.success(msg);
     } catch (err: any) {
-      setErrorMsg(err.response?.data?.message || "Upload failed");
+      const errText = err.response?.data?.message || "Upload failed";
+      setErrorMsg(errText);
+      toast.error(errText);
     } finally {
       setIsUploading(false);
     }
   };
 
-  // 9. Handle loading and error states before rendering main return
+  // Submit Review Handler
+  const handleReviewSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!transaction || isSubmittingReview) return;
+
+    if (rating === 0) {
+      toast.warning("Please choose a rating between 1 and 5 stars.");
+      return;
+    }
+
+    if (!comment || comment.trim().length < 3) {
+      toast.warning("Please write a review comment (minimum 3 characters).");
+      return;
+    }
+
+    try {
+      setIsSubmittingReview(true);
+
+      const token =
+        localStorage.getItem("token") ||
+        localStorage.getItem("accessToken") ||
+        localStorage.getItem("jwt");
+
+      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+      await axiosInstance.post(
+        "/reviews",
+        {
+          transactionId: transaction.id,
+          rating,
+          comment: comment.trim(),
+        },
+        { headers }
+      );
+
+      toast.success("Thank you! Your review has been submitted.");
+      setShowReviewForm(false);
+      setComment("");
+      setRating(0);
+
+      // Re-fetch to update attendance review status
+      await fetchTransaction();
+    } catch (err: any) {
+      const errText =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to submit review. Check console/network for details.";
+      toast.error(errText);
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="bg-[#fbf7f4] min-h-screen flex flex-col">
@@ -135,32 +236,58 @@ export const TransactionPaymentPage: React.FC = () => {
     );
   }
 
-  // Safely check if status is one of the rolled-back states
   const isRolledBackStatus =
     transaction.status === "EXPIRED" ||
     transaction.status === "CANCELED" ||
     transaction.status === "REJECTED";
 
+  const hasUploadedProof =
+    Boolean(transaction.paymentProof) &&
+    transaction.paymentProof !== "FREE_OR_FULLY_COVERED";
+
+  const canUploadOrReupload =
+    transaction.status === "WAITING_FOR_PAYMENT" ||
+    (transaction.status === "WAITING_FOR_ADMIN_CONFIRMATION" &&
+      transaction.paymentProof !== "FREE_OR_FULLY_COVERED");
+
+  const firstEvent = (transaction.transactionItems?.[0]?.ticketType as any)?.event;
+  const eventName = firstEvent?.name || "Event Ticket Transaction";
+  const eventEndDateStr = firstEvent?.endDate;
+
+  const isEventEnded = eventEndDateStr
+    ? new Date(eventEndDateStr).getTime() < Date.now()
+    : false;
+
+  const existingReview = (transaction as any).attendances?.[0]?.reviews?.[0];
+  const canReviewThisTransaction = transaction.status === "DONE" && isEventEnded;
+
   return (
     <div className="bg-[#fbf7f4] min-h-screen flex flex-col">
       <Navbar />
-      <div className="flex-1 max-w-xl w-full mx-auto px-4 py-12">
+      <ToastContainer position="top-right" autoClose={3000} />
+
+      <div className="flex-1 max-w-xl w-full mx-auto px-4 py-12 space-y-4">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-amber-900 transition"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to My Transactions
+        </button>
+
         <div className="bg-white rounded-2xl shadow-md p-6 space-y-6 border border-amber-200">
-          {/* Header: Transaction ID & Status Badge */}
-          <div className="flex justify-between items-center border-b pb-4">
+          <div className="flex justify-between items-start border-b pb-4">
             <div>
-              <span className="text-xs text-slate-400">Transaction ID</span>
-              <h2 className="text-lg font-extrabold text-amber-900">
-                #{transaction.id}
-              </h2>
+              <span className="text-xs text-slate-400">Transaction #{transaction.id}</span>
+              <h2 className="text-lg font-extrabold text-amber-900 mt-0.5">{eventName}</h2>
             </div>
-            {/* Fixed: Use .replace(/_/g, " ") instead of .replaceAll("_", " ") for TS compatibility */}
             <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#ffdfa5] text-amber-900">
               {String(transaction.status).replace(/_/g, " ")}
             </span>
           </div>
 
-          {/* 2-Hour Countdown Box (Only shown when WAITING_FOR_PAYMENT) */}
+          {/* 2-Hour Countdown */}
           {transaction.status === "WAITING_FOR_PAYMENT" && (
             <div className="p-4 bg-amber-50 border border-amber-300 rounded-xl flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -180,21 +307,18 @@ export const TransactionPaymentPage: React.FC = () => {
             </div>
           )}
 
-          {/* Status Banner for Waiting for Admin Confirmation */}
           {transaction.status === "WAITING_FOR_ADMIN_CONFIRMATION" && (
             <div className="p-4 bg-[#ffc7b9] border border-[#ffdfa5] rounded-xl flex items-center gap-3 text-xs text-[#222432]">
               <CheckCircle2 className="w-5 h-5 text-[#4eb2a0] shrink-0" />
               <div>
                 <p className="font-bold">Payment Proof Uploaded!</p>
                 <p>
-                  Waiting for organizer confirmation (auto-cancels & refunds if
-                  no response within 3 days).
+                  Waiting for organizer confirmation. You can still re-upload a receipt below until confirmed.
                 </p>
               </div>
             </div>
           )}
 
-          {/* Status Banner for DONE */}
           {transaction.status === "DONE" && (
             <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-3 text-xs text-emerald-900">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
@@ -205,32 +329,30 @@ export const TransactionPaymentPage: React.FC = () => {
             </div>
           )}
 
-          {/* Status Banner for Expired / Canceled / Rejected */}
           {isRolledBackStatus && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-xs text-red-900">
               <XCircle className="w-5 h-5 text-red-600 shrink-0" />
               <div>
                 <p className="font-bold">Transaction {transaction.status}</p>
-                <p>
-                  Your used points, vouchers, coupons, and reserved seats have
-                  been automatically restored.
-                </p>
+                <p>Used points, vouchers, coupons, and reserved seats have been restored.</p>
               </div>
             </div>
           )}
 
-          {/* Payment Summary with Safe Optional Chaining */}
+          {/* Breakdown */}
           <div className="space-y-2 text-xs text-slate-700">
             <h4 className="font-bold text-slate-900">Order Breakdown</h4>
-
             {(transaction.transactionItems ?? []).map((item) => (
               <div key={item.id} className="flex justify-between">
-                <span>
-                  {item.ticketType?.name || "Event Ticket"} x {item.quantity}
-                </span>
+                <span>{item.ticketType?.name || "Ticket"} x {item.quantity}</span>
                 <span>{formatIDR(item.price * item.quantity)}</span>
               </div>
             ))}
+
+            <div className="flex justify-between pt-1 text-slate-500">
+              <span>Subtotal</span>
+              <span>{formatIDR(transaction.subtotal)}</span>
+            </div>
 
             {transaction.voucherDiscount > 0 && (
               <div className="flex justify-between text-emerald-700">
@@ -255,35 +377,158 @@ export const TransactionPaymentPage: React.FC = () => {
 
             <div className="border-t pt-2 flex justify-between text-sm font-extrabold text-slate-900">
               <span>Final Amount to Transfer</span>
-              <span className="text-amber-800">
-                {formatIDR(transaction.totalAmount)}
-              </span>
+              <span className="text-amber-800">{formatIDR(transaction.totalAmount)}</span>
             </div>
           </div>
 
-          {/* Upload Payment Proof Form */}
-          {transaction.status === "WAITING_FOR_PAYMENT" && (
+          {/* Payment Proof Link */}
+          {hasUploadedProof && (
+            <div className="pt-3 border-t flex items-center justify-between text-xs">
+              <span className="font-semibold text-slate-700">Current Payment Proof</span>
+              <a
+                href={transaction.paymentProof!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 font-bold text-amber-800 hover:underline"
+              >
+                View Uploaded Image <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          )}
+
+          {/* Upload / Re-upload Form */}
+          {canUploadOrReupload && (
             <form onSubmit={handleUploadProof} className="space-y-4 pt-4 border-t">
-              <label className="block text-xs font-bold text-slate-800">
-                Upload Payment Proof (JPG/PNG)
-              </label>
+              <div>
+                <label className="block text-xs font-bold text-slate-800">
+                  {hasUploadedProof ? "Re-upload Payment Proof (JPG/PNG)" : "Upload Payment Proof (JPG/PNG)"}
+                </label>
+              </div>
+
               <input
+                ref={fileInputRef}
                 type="file"
                 accept="image/*"
                 required
-                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                className="w-full text-xs file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-[#ffdfa5] file:text-amber-900 file:font-semibold"
+                disabled={isUploading}
+                onChange={(e) => {
+                  setSelectedFile(e.target.files?.[0] || null);
+                  setSuccessMsg(null);
+                  setErrorMsg(null);
+                }}
+                className="w-full text-xs file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-[#ffdfa5] file:text-amber-900 file:font-semibold disabled:opacity-50"
               />
-              {errorMsg && <p className="text-xs text-red-600">{errorMsg}</p>}
+
+              {errorMsg && <p className="text-xs text-red-600 font-medium">{errorMsg}</p>}
+              {successMsg && <p className="text-xs text-emerald-700 font-medium">{successMsg}</p>}
+
               <button
                 type="submit"
                 disabled={!selectedFile || isUploading}
-                className="w-full py-2.5 bg-[#f4917b] text-[#222432] font-bold rounded-lg text-xs flex items-center justify-center gap-2 disabled:opacity-40"
+                className="w-full py-2.5 bg-[#f4917b] text-[#222432] font-bold rounded-lg text-xs flex items-center justify-center gap-2 hover:bg-[#ffc7b9] transition disabled:opacity-40"
               >
-                <Upload className="w-4 h-4" />
-                {isUploading ? "Uploading Proof..." : "Submit Payment Proof"}
+                {hasUploadedProof ? (
+                  <RefreshCw className={`w-4 h-4 ${isUploading ? "animate-spin" : ""}`} />
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+                {isUploading ? "Uploading..." : hasUploadedProof ? "Re-upload Proof" : "Submit Payment Proof"}
               </button>
             </form>
+          )}
+
+          {/* ===================================================================== */}
+          {/* SHADCN RATING REVIEW SECTION                                          */}
+          {/* ===================================================================== */}
+          {canReviewThisTransaction && (
+            <div id="review" className="pt-4 border-t border-amber-200 space-y-4">
+              {existingReview ? (
+                <Card className="border-amber-200 bg-[#fbf7f4]">
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-amber-900">Your Submitted Review</span>
+                      <Rating rating={existingReview.rating} editable={false} />
+                    </div>
+                    <p className="text-xs text-slate-700 italic">&ldquo;{existingReview.comment}&rdquo;</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <>
+                  {!showReviewForm ? (
+                    <Button
+                      type="button"
+                      onClick={() => setShowReviewForm(true)}
+                      className="w-full gap-2 bg-[#f4917b] text-[#222432] font-bold hover:bg-[#ffc7b9]"
+                    >
+                      <MessageSquarePlus className="w-4 h-4" />
+                      Write a Review
+                    </Button>
+                  ) : (
+                    <Card className="border-amber-300 bg-white">
+                      <CardContent className="p-5 space-y-5">
+                        <div className="flex justify-between items-center border-b pb-3">
+                          <h3 className="text-sm font-bold text-amber-900 flex items-center gap-1.5">
+                            <Sparkles className="w-4 h-4 text-amber-500" />
+                            Write a Review for &ldquo;{eventName}&rdquo;
+                          </h3>
+                          <button
+                            type="button"
+                            onClick={() => setShowReviewForm(false)}
+                            className="text-xs text-slate-400 hover:text-slate-700"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+
+                        {/* Interactive shadcn Rating Component */}
+                        <div className="flex flex-col items-center gap-2 p-3 rounded-xl bg-[#fbf7f4] border border-amber-100">
+                          <Rating
+                            rating={rating}
+                            onRatingChange={setRating}
+                            editable
+                          />
+                          {rating > 0 && (
+                            <p className="text-xs font-medium text-slate-600">
+                              {rating <= 2
+                                ? "We're sorry to hear that"
+                                : rating <= 3
+                                ? "Thanks for your feedback"
+                                : "Glad you enjoyed the event!"}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="review-comment" className="text-xs font-semibold text-slate-700">
+                            Your feedback
+                          </Label>
+                          <Textarea
+                            id="review-comment"
+                            rows={3}
+                            disabled={isSubmittingReview}
+                            value={comment}
+                            onChange={(e) => setComment(e.target.value)}
+                            placeholder="Share your experience attending this event..."
+                            className="text-xs focus-visible:ring-[#f4917b]"
+                          />
+                        </div>
+
+                        {/* Submit Button with active onClick handler and loading indicator */}
+                        <Button
+                          type="button"
+                          disabled={rating === 0 || isSubmittingReview}
+                          onClick={() => handleReviewSubmit()}
+                          className="w-full bg-[#f4917b] text-[#222432] font-bold hover:bg-[#ffc7b9] disabled:opacity-40"
+                          size="sm"
+                        >
+                          {isSubmittingReview ? "Submitting..." : "Submit Review"}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
+              )}
+            </div>
           )}
         </div>
       </div>

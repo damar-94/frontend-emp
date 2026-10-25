@@ -12,6 +12,11 @@ import { useDebounce } from "../hooks/useDebounce";
 import { axiosInstance } from "@/lib/axios";
 import { useAuth } from "@/stores/useAuth";
 
+interface CategoryItem {
+  id: number;
+  name: string;
+}
+
 interface NavbarProps {
   onSearch?: (query: string) => void;
   onSelectCategory?: (category: string) => void;
@@ -22,8 +27,10 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Ambil data user & fungsi logout dari store auth
+  // Dynamic Categories from Database
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
 
+  // Auth State
   const { user, logout } = useAuth() as {
     user: any;
     logout?: () => void;
@@ -49,6 +56,25 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
   const mobileSearchContainerRef = useRef<HTMLDivElement>(null);
 
   const debouncedSearch = useDebounce(searchTerm, 400);
+
+  // Fetch Categories from Database
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await axiosInstance.get("/categories");
+        const list = Array.isArray(res.data?.data)
+          ? res.data.data
+          : Array.isArray(res.data)
+            ? res.data
+            : [];
+        setCategories(list);
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -93,14 +119,6 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
       setSuggestions([]);
     }
   }, [debouncedSearch, onSearch]);
-
-  const categories = [
-    "All Categories",
-    "Music",
-    "Technology",
-    "Workshop",
-    "Sports",
-  ];
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -200,17 +218,29 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
                   <div className="px-3 py-1.5 text-[11px] font-bold uppercase text-slate-400">
                     Explore Categories
                   </div>
+
+                  <a
+                    href="/events"
+                    onClick={() => {
+                      onSelectCategory?.("All Categories");
+                      setIsCategoryOpen(false);
+                    }}
+                    className="block w-full text-left px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-[#f4917b] transition"
+                  >
+                    All Categories
+                  </a>
+
                   {categories.map((cat) => (
                     <a
-                      key={cat}
-                      href={`/events?category=${encodeURIComponent(cat)}`}
+                      key={cat.id}
+                      href={`/events?category=${encodeURIComponent(cat.name)}`}
                       onClick={() => {
-                        onSelectCategory?.(cat);
+                        onSelectCategory?.(cat.name);
                         setIsCategoryOpen(false);
                       }}
                       className="block w-full text-left px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-[#f4917b] transition"
                     >
-                      {cat}
+                      {cat.name}
                     </a>
                   ))}
                 </div>
@@ -248,7 +278,7 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
         </div>
 
         <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-          {/* Dashboard Button Web */}
+          {/* Dashboard Button */}
           {isLoggedIn && (
             <a
               href={dashboardPath}
@@ -352,17 +382,27 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
               Select Category
             </p>
             <div className="grid grid-cols-2 gap-2">
+              <a
+                href="/events"
+                onClick={() => {
+                  onSelectCategory?.("All Categories");
+                  setMobileMenuOpen(false);
+                }}
+                className="block text-left text-xs text-slate-600 hover:text-[#f4917b] py-1"
+              >
+                All Categories
+              </a>
               {categories.map((c) => (
                 <a
-                  key={c}
-                  href={`/events?category=${encodeURIComponent(c)}`}
+                  key={c.id}
+                  href={`/events?category=${encodeURIComponent(c.name)}`}
                   onClick={() => {
-                    onSelectCategory?.(c);
+                    onSelectCategory?.(c.name);
                     setMobileMenuOpen(false);
                   }}
                   className="block text-left text-xs text-slate-600 hover:text-[#f4917b] py-1"
                 >
-                  {c}
+                  {c.name}
                 </a>
               ))}
             </div>
