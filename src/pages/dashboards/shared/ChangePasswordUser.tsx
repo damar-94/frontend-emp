@@ -9,9 +9,18 @@ import {
   type ChangePasswordSchema,
 } from "@/schemas_2/changePassword";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { EyeClosedIcon, EyeIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 
 export function ChangePasswordUser() {
+  const [showCurrentPassword, setShowCurrentPassword] =
+    useState<boolean>(false);
+  const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState<boolean>(false);
+
   const changePasswordMutation = useChangePassword();
 
   const {
@@ -50,12 +59,30 @@ export function ChangePasswordUser() {
           <form onSubmit={handleSubmit(onChangePassword)} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="currentPassword">Current Password</Label>
-              <Input
-                id="currentPassword"
-                type="password"
-                placeholder="Please enter your current password"
-                {...register("currentPassword")}
-              />
+
+              <div className="relative">
+                <Input
+                  id="currentPassword"
+                  type={showCurrentPassword ? "text" : "password"}
+                  placeholder="Please enter your current password"
+                  {...register("currentPassword")}
+                />
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                >
+                  <HugeiconsIcon
+                    icon={showCurrentPassword ? EyeIcon : EyeClosedIcon}
+                    size={24}
+                    color="currentColor"
+                    strokeWidth={1.5}
+                  />
+                </Button>
+              </div>
+
               {errors.currentPassword && (
                 <p className="text-sm text-red-500">
                   {errors.currentPassword.message}
@@ -65,12 +92,29 @@ export function ChangePasswordUser() {
 
             <div className="space-y-2">
               <Label htmlFor="newPassword">New Password</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                placeholder="Please enter your new password"
-                {...register("newPassword")}
-              />
+              <div className="relative">
+                <Input
+                  id="newPassword"
+                  type={showNewPassword ? "text" : "password"}
+                  placeholder="Please enter your new password"
+                  {...register("newPassword")}
+                />
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                >
+                  <HugeiconsIcon
+                    icon={showNewPassword ? EyeIcon : EyeClosedIcon}
+                    size={24}
+                    color="currentColor"
+                    strokeWidth={1.5}
+                  />
+                </Button>
+              </div>
+
               {errors.newPassword && (
                 <p className="text-sm text-red-500">
                   {errors.newPassword.message}
@@ -80,12 +124,29 @@ export function ChangePasswordUser() {
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Please confirm your new password"
-                {...register("confirmPassword")}
-              />
+
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Please confirm your new password"
+                  {...register("confirmPassword")}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  <HugeiconsIcon
+                    icon={showConfirmPassword ? EyeIcon : EyeClosedIcon}
+                    size={24}
+                    color="currentColor"
+                    strokeWidth={1.5}
+                  />
+                </Button>
+              </div>
+
               {errors.confirmPassword && (
                 <p className="text-sm text-red-500">
                   {errors.confirmPassword.message}
@@ -109,9 +170,10 @@ export function ChangePasswordUser() {
           {/* Reset Password */}
           <div className="space-y-3">
             <div>
-              <h3 className="font-medium">Forgot your password?</h3>
+              <h3 className="font-medium">Password Recovery</h3>
               <p className="text-sm text-muted-foreground">
-                You can reset your password using your registered email address.
+                Need to update your password? You can reset it securely using
+                your registered email address.{" "}
               </p>
             </div>
 

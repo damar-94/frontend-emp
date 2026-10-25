@@ -15,10 +15,10 @@ function RegisterPage() {
     resolver: zodResolver(registerUserSchema),
   });
 
-  const {mutate, isPending} = useRegister();
+  const { mutate, isPending } = useRegister();
 
   const handleRegister = async (values: RegisterUserSchema) => {
-    mutate(values)
+    mutate(values);
   };
 
   return (
@@ -46,10 +46,17 @@ function RegisterPage() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(handleRegister)} className="space-y-4" noValidate>
+        <form
+          onSubmit={handleSubmit(handleRegister)}
+          className="space-y-4"
+          noValidate
+        >
           {/* Name */}
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-sm font-semibold text-[#3d312e]">
+            <Label
+              htmlFor="name"
+              className="text-sm font-semibold text-[#3d312e]"
+            >
               Name
             </Label>
 
@@ -117,14 +124,17 @@ function RegisterPage() {
           </div>
 
           {/* Role */}
-          <div className="space-y-2">
-            <Label htmlFor="role" className="text-sm font-semibold text-[#3d312e]">
+          <div className="w-full min-w-0 space-y-2">
+            <Label
+              htmlFor="role"
+              className="text-sm font-semibold text-[#3d312e]"
+            >
               Role
             </Label>
 
             <select
               id="role"
-              className="flex h-10 w-full rounded-md border border-[#f4917b]/60 bg-background px-3 py-2 text-sm text-[#3d312e] outline-none focus:border-[#f4917b] focus:ring-2 focus:ring-[#f4917b]/20"
+              className="box-border block h-10 w-full min-w-0 max-w-full rounded-md border border-[#f4917b]/60 bg-white px-3 py-2 text-sm text-[#3d312e] outline-none focus:border-[#f4917b] focus:ring-2 focus:ring-[#f4917b]/20"
               {...register("role")}
             >
               <option value="CUSTOMER">Customer</option>
