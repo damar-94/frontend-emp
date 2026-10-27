@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/carousel";
 import { axiosInstance } from "@/lib/axios";
 import type { EventModel } from "@/types/event.types";
+import { useQuery } from "@tanstack/react-query";
 import {
   Calendar,
   CalendarDays,
@@ -15,27 +16,18 @@ import {
   Loader2,
   MapPin,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router";
 
 export function EventDiscoverySection() {
-  const [events, setEvents] = useState<EventModel[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    const fetchDiscoveryEvents = async () => {
-      try {
-        const res = await axiosInstance.get("/events", { params: { limit: 10 } });
-        setEvents(res.data.data || []);
-      } catch (err) {
-        console.error("Failed to fetch discovery events:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDiscoveryEvents();
-  }, []);
+  // Fetch up to 10 discovery events via TanStack Query
+  const { data: events = [], isPending: loading } = useQuery<EventModel[]>({
+    queryKey: ["events", "discovery", { limit: 10 }],
+    queryFn: async () => {
+      const res = await axiosInstance.get("/events", { params: { limit: 10 } });
+      return res.data?.data || [];
+    },
+  });
 
   // Filter events strictly for this week (with a fallback to upcoming events)
   const thisWeekEvents = useMemo(() => {
@@ -59,7 +51,9 @@ export function EventDiscoverySection() {
     return {
       month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
       day: date.toLocaleDateString("en-US", { day: "numeric" }),
-      weekday: date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase(),
+      weekday: date
+        .toLocaleDateString("en-US", { weekday: "short" })
+        .toUpperCase(),
     };
   };
 
@@ -69,7 +63,7 @@ export function EventDiscoverySection() {
         {/* Left Column: Shadcn Carousel Image Slideshow */}
         <div className="lg:col-span-4 w-full">
           {loading ? (
-            <div className="aspect-4/5m:aspect-[3/4] lg:aspect-auto lg:h-122.5 w-full rounded-2xl bg-slate-100 flex items-center justify-center">
+            <div className="aspect-4/5 sm:aspect-3/4 lg:aspect-auto lg:h-122.5 w-full rounded-2xl bg-slate-100 flex items-center justify-center">
               <Loader2 className="w-6 h-6 animate-spin text-[#f4917b]" />
             </div>
           ) : events.length > 0 ? (
@@ -91,7 +85,7 @@ export function EventDiscoverySection() {
                         className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                       {/* Gradient Overlay */}
-                      <div className="absolute inset-0 bg-linear-to-trom-black/90 via-black/40 to-black/30 pointer-events-none" />
+                      <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/40 to-black/30 pointer-events-none" />
 
                       {/* Top Badges */}
                       <div className="relative z-10 flex items-center justify-between">
@@ -117,11 +111,14 @@ export function EventDiscoverySection() {
                         <div className="flex items-center gap-1.5 text-xs text-slate-300">
                           <Calendar className="w-3.5 h-3.5 text-[#f4917b]" />
                           <span>
-                            {new Date(event.startDate).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
+                            {new Date(event.startDate).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              },
+                            )}
                           </span>
                         </div>
 
@@ -185,7 +182,9 @@ export function EventDiscoverySection() {
             <div className="divide-y divide-slate-100 mt-2">
               {thisWeekEvents.map((event) => {
                 const badge = getCalendarBadge(event.startDate);
-                const formattedDate = new Date(event.startDate).toLocaleDateString("en-US", {
+                const formattedDate = new Date(
+                  event.startDate,
+                ).toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
                   year: "numeric",
