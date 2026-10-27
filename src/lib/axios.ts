@@ -3,7 +3,7 @@ import axios from "axios";
 import { useAuth } from "@/stores/useAuth";
 
 export const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
+  baseURL: import.meta.env.VITE_API_BASE_URL 
 });
 
 // Automatically attach the JWT token from Zustand's user.accessToken on every request
