@@ -3,8 +3,12 @@ import { Navbar } from "@/components/Navbar";
 import { axiosInstance } from "@/lib/axios";
 import type { LocCity, LocProvince } from "@/types/location.types";
 import { Plus, Trash2, Upload } from "lucide-react";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
+import { useNavigate } from "react-router";
+import { toast } from "react-toastify";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { AxiosError } from "axios";
 import { getCitiesByProvince, getProvinces } from "../api/locationApi";
 import { useCategories } from "@/hooks/API/category/useGetCategories";
 
@@ -29,13 +33,18 @@ interface FormValues {
 }
 
 export const CreateEventPage: React.FC = () => {
-  const [provinces, setProvinces] = useState<LocProvince[]>([]);
-  const [cities, setCities] = useState<LocCity[]>([]);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  const { data: categories, isPending, isError } = useCategories();
+  // 1. Fetch Categories via TanStack Query hook
+  const {
+    data: categories,
+    isPending: isCategoriesPending,
+    isError: isCategoriesError,
+  } = useCategories();
 
   const {
     register,
@@ -64,6 +73,55 @@ export const CreateEventPage: React.FC = () => {
   const watchEndDate = watch("endDate");
   const watchVoucherStart = watch("voucher.startAt");
 
+  // 2. Fetch Provinces via TanStack useQuery
+  const { data: provinces = [], isPending: isProvincesPending } = useQuery<
+    LocProvince[]
+  >({
+    queryKey: ["provinces"],
+    queryFn: async () => {
+      try {
+        return await getProvinces();
+      } catch (err) {
+        toast.error("Failed to load provinces.");
+        throw err;
+      }
+    },
+  });
+
+  // 3. Fetch Cities via TanStack useQuery (runs automatically when selectedProvince is chosen)
+  const { data: cities = [], isPending: isCitiesPending } = useQuery<LocCity[]>(
+    {
+      queryKey: ["cities", selectedProvince],
+      queryFn: async () => {
+        try {
+          return await getCitiesByProvince(selectedProvince);
+        } catch (err) {
+          toast.error("Failed to load cities.");
+          throw err;
+        }
+      },
+      enabled: Boolean(selectedProvince),
+    },
+  );
+
+  // 4. Create Event via TanStack useMutation
+  const createEventMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const { data } = await axiosInstance.post("/events", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      toast.success("Event successfully created!");
+      navigate("/events");
+    },
+    onError: (error: AxiosError<{ message: string }>) => {
+      toast.error(error.response?.data?.message || "Failed to create event");
+    },
+  });
+
   // Helper to format Date into YYYY-MM-DDTHH:mm for datetime-local min/max
   const formatDateTimeLocal = (date: Date) => {
     const pad = (n: number) => String(n).padStart(2, "0");
@@ -76,17 +134,10 @@ export const CreateEventPage: React.FC = () => {
   };
 
   // Get current timestamp formatted for input min
-  const currentDateTimeString = useMemo(() => formatDateTimeLocal(new Date()), []);
-
-  useEffect(() => {
-    getProvinces().then(setProvinces);
-  }, []);
-
-  useEffect(() => {
-    if (selectedProvince) {
-      getCitiesByProvince(selectedProvince).then(setCities);
-    }
-  }, [selectedProvince]);
+  const currentDateTimeString = useMemo(
+    () => formatDateTimeLocal(new Date()),
+    [],
+  );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -96,43 +147,31 @@ export const CreateEventPage: React.FC = () => {
     }
   };
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit = (values: FormValues) => {
     if (!selectedFile) {
-      alert("Event thumbnail image is required.");
+      toast.warning("Event thumbnail image is required.");
       return;
     }
 
-    try {
-      setLoading(true);
-      const provinceObj = provinces.find((p) => p.id === values.provinceId);
-      const location = `${values.cityName}, ${provinceObj ? provinceObj.name : ""}`;
+    const provinceObj = provinces.find((p) => p.id === values.provinceId);
+    const location = `${values.cityName}, ${provinceObj ? provinceObj.name : ""}`;
 
-      const payload = {
-        name: values.name,
-        categoryId: Number(values.categoryId),
-        description: values.description,
-        location,
-        startDate: values.startDate,
-        endDate: values.endDate,
-        tickets: values.tickets,
-        voucher: values.enablePromotion ? values.voucher : undefined,
-      };
+    const payload = {
+      name: values.name,
+      categoryId: Number(values.categoryId),
+      description: values.description,
+      location,
+      startDate: values.startDate,
+      endDate: values.endDate,
+      tickets: values.tickets,
+      voucher: values.enablePromotion ? values.voucher : undefined,
+    };
 
-      const formData = new FormData();
-      formData.append("thumbnail", selectedFile);
-      formData.append("data", JSON.stringify(payload));
+    const formData = new FormData();
+    formData.append("thumbnail", selectedFile);
+    formData.append("data", JSON.stringify(payload));
 
-      await axiosInstance.post("/events", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      alert("Event successfully created!");
-      window.location.href = "/events";
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to create event");
-    } finally {
-      setLoading(false);
-    }
+    createEventMutation.mutate(formData);
   };
 
   return (
@@ -207,12 +246,16 @@ export const CreateEventPage: React.FC = () => {
                   valueAsNumber: true,
                 })}
                 className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#f4917b] outline-none"
-                disabled={isPending || isError || !categories?.length}
+                disabled={
+                  isCategoriesPending ||
+                  isCategoriesError ||
+                  !categories?.length
+                }
               >
                 <option value="">
-                  {isPending
+                  {isCategoriesPending
                     ? "Loading categories..."
-                    : isError
+                    : isCategoriesError
                       ? "Failed to load categories"
                       : "Select Category"}
                 </option>
@@ -238,9 +281,14 @@ export const CreateEventPage: React.FC = () => {
               </label>
               <select
                 {...register("provinceId", { required: true })}
+                disabled={isProvincesPending}
                 className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#f4917b] outline-none"
               >
-                <option value="">Select Province</option>
+                <option value="">
+                  {isProvincesPending
+                    ? "Loading provinces..."
+                    : "Select Province"}
+                </option>
                 {provinces.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -255,10 +303,14 @@ export const CreateEventPage: React.FC = () => {
               </label>
               <select
                 {...register("cityName", { required: true })}
-                disabled={!cities.length}
+                disabled={
+                  !selectedProvince || isCitiesPending || !cities.length
+                }
                 className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#f4917b] outline-none"
               >
-                <option value="">Select City</option>
+                <option value="">
+                  {isCitiesPending ? "Loading cities..." : "Select City"}
+                </option>
                 {cities.map((c) => (
                   <option key={c.id} value={c.name}>
                     {c.name}
@@ -417,7 +469,9 @@ export const CreateEventPage: React.FC = () => {
                   </label>
                   <input
                     {...register("voucher.code", {
-                      required: enablePromotion ? "Voucher code is required" : false,
+                      required: enablePromotion
+                        ? "Voucher code is required"
+                        : false,
                     })}
                     placeholder="e.g. EARLYBIRD2026"
                     className="w-full px-3 py-2 border rounded-lg text-sm bg-white uppercase"
@@ -436,7 +490,9 @@ export const CreateEventPage: React.FC = () => {
                   <input
                     type="number"
                     {...register("voucher.discountValue", {
-                      required: enablePromotion ? "Discount amount is required" : false,
+                      required: enablePromotion
+                        ? "Discount amount is required"
+                        : false,
                       valueAsNumber: true,
                     })}
                     placeholder="50000"
@@ -456,7 +512,9 @@ export const CreateEventPage: React.FC = () => {
                   <input
                     type="number"
                     {...register("voucher.maxUsage", {
-                      required: enablePromotion ? "Max usages is required" : false,
+                      required: enablePromotion
+                        ? "Max usages is required"
+                        : false,
                       valueAsNumber: true,
                     })}
                     placeholder="50"
@@ -479,13 +537,18 @@ export const CreateEventPage: React.FC = () => {
                     min={currentDateTimeString}
                     max={watchEndDate || undefined}
                     {...register("voucher.startAt", {
-                      required: enablePromotion ? "Voucher start date is required" : false,
+                      required: enablePromotion
+                        ? "Voucher start date is required"
+                        : false,
                       validate: (value) => {
                         if (!enablePromotion || !value) return true;
                         if (new Date(value) < new Date()) {
                           return "Voucher start date cannot be in the past";
                         }
-                        if (watchEndDate && new Date(value) > new Date(watchEndDate)) {
+                        if (
+                          watchEndDate &&
+                          new Date(value) > new Date(watchEndDate)
+                        ) {
                           return "Voucher cannot start after the event ends";
                         }
                         return true;
@@ -508,24 +571,33 @@ export const CreateEventPage: React.FC = () => {
                   <input
                     type="datetime-local"
                     min={
-                      // Must be greater than or equal to voucher start date AND event start date
                       watchVoucherStart && watchStartDate
                         ? watchVoucherStart > watchStartDate
                           ? watchVoucherStart
                           : watchStartDate
-                        : watchVoucherStart || watchStartDate || currentDateTimeString
+                        : watchVoucherStart ||
+                          watchStartDate ||
+                          currentDateTimeString
                     }
                     {...register("voucher.expiresAt", {
-                      required: enablePromotion ? "Expiration date is required" : false,
+                      required: enablePromotion
+                        ? "Expiration date is required"
+                        : false,
                       validate: (value) => {
                         if (!enablePromotion || !value) return true;
                         const expDate = new Date(value);
 
-                        if (watchVoucherStart && expDate < new Date(watchVoucherStart)) {
+                        if (
+                          watchVoucherStart &&
+                          expDate < new Date(watchVoucherStart)
+                        ) {
                           return "Expiration date cannot be earlier than voucher start date";
                         }
 
-                        if (watchStartDate && expDate < new Date(watchStartDate)) {
+                        if (
+                          watchStartDate &&
+                          expDate < new Date(watchStartDate)
+                        ) {
                           return "Expiration date cannot be earlier than event start date";
                         }
 
@@ -546,10 +618,12 @@ export const CreateEventPage: React.FC = () => {
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-[#f4917b] hover:bg-[#ffc7b9] text-white font-bold py-3 rounded-lg text-sm transition"
+            disabled={createEventMutation.isPending}
+            className="w-full bg-[#f4917b] hover:bg-[#ffc7b9] text-white font-bold py-3 rounded-lg text-sm transition disabled:opacity-50"
           >
-            {loading ? "Publishing Event..." : "Publish Event"}
+            {createEventMutation.isPending
+              ? "Publishing Event..."
+              : "Publish Event"}
           </button>
         </form>
       </div>

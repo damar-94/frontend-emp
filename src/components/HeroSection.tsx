@@ -1,6 +1,7 @@
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link } from "react-router";
+import { useQuery } from "@tanstack/react-query";
 import {
   Carousel,
   CarouselContent,
@@ -14,27 +15,18 @@ import { axiosInstance } from "@/lib/axios";
 import type { EventModel } from "@/types/event.types";
 
 export function HeroSection() {
-  const [events, setEvents] = useState<EventModel[]>([]);
-  const [loading, setLoading] = useState(true);
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
   const [count, setCount] = React.useState(0);
 
-  useEffect(() => {
-    const fetchHeroEvents = async () => {
-      try {
-        // Fetch up to 5 featured/upcoming events
-        const res = await axiosInstance.get("/events", { params: { limit: 5 } });
-        setEvents(res.data.data || []);
-      } catch (err) {
-        console.error("Failed to fetch hero events:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchHeroEvents();
-  }, []);
+  // Fetch up to 5 featured/upcoming events via TanStack Query
+  const { data: events = [], isPending: loading } = useQuery<EventModel[]>({
+    queryKey: ["events", "hero", { limit: 5 }],
+    queryFn: async () => {
+      const res = await axiosInstance.get("/events", { params: { limit: 5 } });
+      return res.data?.data || [];
+    },
+  });
 
   useEffect(() => {
     if (!api) return;
@@ -61,7 +53,9 @@ export function HeroSection() {
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="w-full aspect-video sm:aspect-21/9 md:aspect-24/8 max-h-95 rounded-2xl bg-slate-900 flex items-center justify-center text-slate-400 gap-2">
           <Loader2 className="w-6 h-6 animate-spin text-[#f4917b]" />
-          <span className="text-sm font-medium">Loading featured events...</span>
+          <span className="text-sm font-medium">
+            Loading featured events...
+          </span>
         </div>
       </div>
     );
@@ -87,11 +81,14 @@ export function HeroSection() {
               ? Math.min(...event.ticketTypes.map((t) => t.price))
               : 0;
 
-            const formattedDate = new Date(event.startDate).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            });
+            const formattedDate = new Date(event.startDate).toLocaleDateString(
+              "en-US",
+              {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              },
+            );
 
             return (
               <CarouselItem key={event.id} className="pl-0 relative">

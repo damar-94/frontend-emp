@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
 import {
   Clock,
@@ -14,10 +14,13 @@ import {
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import { axiosInstance } from "@/lib/axios";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import type { TransactionDetailModel } from "@/types/transaction.types";
+import {
+  useTransactionDetailQuery,
+  useUploadPaymentProofMutation,
+  useSubmitReviewMutation,
+} from "@/hooks/useTransactionQueries";
 
 // shadcn UI & ReUI imports
 import { Rating } from "@/components/reui/rating";
@@ -34,45 +37,32 @@ export const TransactionPaymentPage: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Transaction state
-  const [transaction, setTransaction] = useState<TransactionDetailModel | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  // Client UI state
   const [remainingSeconds, setRemainingSeconds] = useState<number>(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // shadcn Rating review state
+  // Review form UI state
   const [showReviewForm, setShowReviewForm] = useState<boolean>(
-    location.hash === "#review"
+    location.hash === "#review",
   );
   const [rating, setRating] = useState<number>(0);
   const [comment, setComment] = useState<string>("");
-  const [isSubmittingReview, setIsSubmittingReview] = useState<boolean>(false);
 
-  // Load transaction from backend
-  const fetchTransaction = useCallback(async () => {
-    if (!transactionId) {
-      setErrorMsg("Invalid transaction ID in URL.");
-      setIsLoading(false);
-      return;
-    }
+  // 1. TanStack Query: Fetch Transaction Detail
+  const {
+    data: transaction,
+    isLoading,
+    error: queryError,
+    refetch: refetchTransaction,
+  } = useTransactionDetailQuery(transactionId);
 
-    try {
-      const res = await axiosInstance.get(`/transactions/${transactionId}`);
-      setTransaction(res.data.data);
-      setErrorMsg(null);
-    } catch (err: any) {
-      setErrorMsg(err.response?.data?.message || "Failed to load transaction");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [transactionId]);
+  // 2. TanStack Mutation: Upload Payment Proof
+  const uploadProofMutation = useUploadPaymentProofMutation(transactionId);
 
-  useEffect(() => {
-    fetchTransaction();
-  }, [fetchTransaction]);
+  // 3. TanStack Mutation: Submit Event Review
+  const submitReviewMutation = useSubmitReviewMutation(transactionId);
 
   useEffect(() => {
     if (location.hash === "#review") {
@@ -95,14 +85,14 @@ export const TransactionPaymentPage: React.FC = () => {
 
       if (diffSec === 0 && !hasTriggeredExpiryRefetch) {
         hasTriggeredExpiryRefetch = true;
-        fetchTransaction();
+        refetchTransaction();
       }
     };
 
     calculateRemaining();
     const interval = setInterval(calculateRemaining, 1000);
     return () => clearInterval(interval);
-  }, [transaction, fetchTransaction]);
+  }, [transaction, refetchTransaction]);
 
   const formatCountdown = (totalSec: number): string => {
     const hrs = Math.floor(totalSec / 3600);
@@ -118,27 +108,18 @@ export const TransactionPaymentPage: React.FC = () => {
       maximumFractionDigits: 0,
     }).format(v || 0);
 
-  // Upload payment proof
+  // Upload payment proof handler using useMutation
   const handleUploadProof = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!selectedFile || !transactionId || isUploading) return;
+    if (!selectedFile || !transactionId || uploadProofMutation.isPending)
+      return;
 
     const isReupload = transaction?.status === "WAITING_FOR_ADMIN_CONFIRMATION";
-
-    setIsUploading(true);
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    const formData = new FormData();
-    formData.append("paymentProof", selectedFile);
-
     try {
-      const res = await axiosInstance.patch(
-        `/transactions/${transactionId}/payment-proof`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-      setTransaction(res.data.data);
+      await uploadProofMutation.mutateAsync(selectedFile);
 
       setSelectedFile(null);
       if (fileInputRef.current) {
@@ -154,15 +135,13 @@ export const TransactionPaymentPage: React.FC = () => {
       const errText = err.response?.data?.message || "Upload failed";
       setErrorMsg(errText);
       toast.error(errText);
-    } finally {
-      setIsUploading(false);
     }
   };
 
-  // Submit Review Handler
+  // Submit Review handler using useMutation
   const handleReviewSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!transaction || isSubmittingReview) return;
+    if (!transaction || submitReviewMutation.isPending) return;
 
     if (rating === 0) {
       toast.warning("Please choose a rating between 1 and 5 stars.");
@@ -175,40 +154,22 @@ export const TransactionPaymentPage: React.FC = () => {
     }
 
     try {
-      setIsSubmittingReview(true);
-
-      const token =
-        localStorage.getItem("token") ||
-        localStorage.getItem("accessToken") ||
-        localStorage.getItem("jwt");
-
-      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
-
-      await axiosInstance.post(
-        "/reviews",
-        {
-          transactionId: transaction.id,
-          rating,
-          comment: comment.trim(),
-        },
-        { headers }
-      );
+      await submitReviewMutation.mutateAsync({
+        transactionId: transaction.id,
+        rating,
+        comment: comment.trim(),
+      });
 
       toast.success("Thank you! Your review has been submitted.");
       setShowReviewForm(false);
       setComment("");
       setRating(0);
-
-      // Re-fetch to update attendance review status
-      await fetchTransaction();
     } catch (err: any) {
       const errText =
         err.response?.data?.message ||
         err.message ||
-        "Failed to submit review. Check console/network for details.";
+        "Failed to submit review.";
       toast.error(errText);
-    } finally {
-      setIsSubmittingReview(false);
     }
   };
 
@@ -225,11 +186,16 @@ export const TransactionPaymentPage: React.FC = () => {
   }
 
   if (!transaction) {
+    const fetchErrMsg =
+      (queryError as any)?.response?.data?.message ||
+      errorMsg ||
+      "Transaction not found.";
+
     return (
       <div className="bg-[#fbf7f4] min-h-screen flex flex-col">
         <Navbar />
         <div className="flex-1 p-10 text-center text-sm text-red-600 font-semibold">
-          {errorMsg || "Transaction not found."}
+          {fetchErrMsg}
         </div>
         <Footer />
       </div>
@@ -250,7 +216,8 @@ export const TransactionPaymentPage: React.FC = () => {
     (transaction.status === "WAITING_FOR_ADMIN_CONFIRMATION" &&
       transaction.paymentProof !== "FREE_OR_FULLY_COVERED");
 
-  const firstEvent = (transaction.transactionItems?.[0]?.ticketType as any)?.event;
+  const firstEvent = (transaction.transactionItems?.[0]?.ticketType as any)
+    ?.event;
   const eventName = firstEvent?.name || "Event Ticket Transaction";
   const eventEndDateStr = firstEvent?.endDate;
 
@@ -259,7 +226,8 @@ export const TransactionPaymentPage: React.FC = () => {
     : false;
 
   const existingReview = (transaction as any).attendances?.[0]?.reviews?.[0];
-  const canReviewThisTransaction = transaction.status === "DONE" && isEventEnded;
+  const canReviewThisTransaction =
+    transaction.status === "DONE" && isEventEnded;
 
   return (
     <div className="bg-[#fbf7f4] min-h-screen flex flex-col">
@@ -279,8 +247,12 @@ export const TransactionPaymentPage: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-md p-6 space-y-6 border border-amber-200">
           <div className="flex justify-between items-start border-b pb-4">
             <div>
-              <span className="text-xs text-slate-400">Transaction #{transaction.id}</span>
-              <h2 className="text-lg font-extrabold text-amber-900 mt-0.5">{eventName}</h2>
+              <span className="text-xs text-slate-400">
+                Transaction #{transaction.id}
+              </span>
+              <h2 className="text-lg font-extrabold text-amber-900 mt-0.5">
+                {eventName}
+              </h2>
             </div>
             <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#ffdfa5] text-amber-900">
               {String(transaction.status).replace(/_/g, " ")}
@@ -313,7 +285,8 @@ export const TransactionPaymentPage: React.FC = () => {
               <div>
                 <p className="font-bold">Payment Proof Uploaded!</p>
                 <p>
-                  Waiting for organizer confirmation. You can still re-upload a receipt below until confirmed.
+                  Waiting for organizer confirmation. You can still re-upload a
+                  receipt below until confirmed.
                 </p>
               </div>
             </div>
@@ -334,7 +307,10 @@ export const TransactionPaymentPage: React.FC = () => {
               <XCircle className="w-5 h-5 text-red-600 shrink-0" />
               <div>
                 <p className="font-bold">Transaction {transaction.status}</p>
-                <p>Used points, vouchers, coupons, and reserved seats have been restored.</p>
+                <p>
+                  Used points, vouchers, coupons, and reserved seats have been
+                  restored.
+                </p>
               </div>
             </div>
           )}
@@ -344,7 +320,9 @@ export const TransactionPaymentPage: React.FC = () => {
             <h4 className="font-bold text-slate-900">Order Breakdown</h4>
             {(transaction.transactionItems ?? []).map((item) => (
               <div key={item.id} className="flex justify-between">
-                <span>{item.ticketType?.name || "Ticket"} x {item.quantity}</span>
+                <span>
+                  {item.ticketType?.name || "Ticket"} x {item.quantity}
+                </span>
                 <span>{formatIDR(item.price * item.quantity)}</span>
               </div>
             ))}
@@ -357,34 +335,38 @@ export const TransactionPaymentPage: React.FC = () => {
             {transaction.voucherDiscount > 0 && (
               <div className="flex justify-between text-emerald-700">
                 <span>Voucher Discount</span>
-                <span>- {formatIDR(transaction.voucherDiscount)}</span>
+                <span>-{formatIDR(transaction.voucherDiscount)}</span>
               </div>
             )}
 
             {transaction.couponDiscount > 0 && (
               <div className="flex justify-between text-emerald-700">
                 <span>Coupon Discount</span>
-                <span>- {formatIDR(transaction.couponDiscount)}</span>
+                <span>-{formatIDR(transaction.couponDiscount)}</span>
               </div>
             )}
 
             {transaction.pointsDiscount > 0 && (
               <div className="flex justify-between text-amber-700">
                 <span>Points Used</span>
-                <span>- {formatIDR(transaction.pointsDiscount)}</span>
+                <span>-{formatIDR(transaction.pointsDiscount)}</span>
               </div>
             )}
 
             <div className="border-t pt-2 flex justify-between text-sm font-extrabold text-slate-900">
               <span>Final Amount to Transfer</span>
-              <span className="text-amber-800">{formatIDR(transaction.totalAmount)}</span>
+              <span className="text-amber-800">
+                {formatIDR(transaction.totalAmount)}
+              </span>
             </div>
           </div>
 
           {/* Payment Proof Link */}
           {hasUploadedProof && (
             <div className="pt-3 border-t flex items-center justify-between text-xs">
-              <span className="font-semibold text-slate-700">Current Payment Proof</span>
+              <span className="font-semibold text-slate-700">
+                Current Payment Proof
+              </span>
               <a
                 href={transaction.paymentProof!}
                 target="_blank"
@@ -398,10 +380,15 @@ export const TransactionPaymentPage: React.FC = () => {
 
           {/* Upload / Re-upload Form */}
           {canUploadOrReupload && (
-            <form onSubmit={handleUploadProof} className="space-y-4 pt-4 border-t">
+            <form
+              onSubmit={handleUploadProof}
+              className="space-y-4 pt-4 border-t"
+            >
               <div>
                 <label className="block text-xs font-bold text-slate-800">
-                  {hasUploadedProof ? "Re-upload Payment Proof (JPG/PNG)" : "Upload Payment Proof (JPG/PNG)"}
+                  {hasUploadedProof
+                    ? "Re-upload Payment Proof (JPG/PNG)"
+                    : "Upload Payment Proof (JPG/PNG)"}
                 </label>
               </div>
 
@@ -410,7 +397,7 @@ export const TransactionPaymentPage: React.FC = () => {
                 type="file"
                 accept="image/*"
                 required
-                disabled={isUploading}
+                disabled={uploadProofMutation.isPending}
                 onChange={(e) => {
                   setSelectedFile(e.target.files?.[0] || null);
                   setSuccessMsg(null);
@@ -419,37 +406,56 @@ export const TransactionPaymentPage: React.FC = () => {
                 className="w-full text-xs file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-[#ffdfa5] file:text-amber-900 file:font-semibold disabled:opacity-50"
               />
 
-              {errorMsg && <p className="text-xs text-red-600 font-medium">{errorMsg}</p>}
-              {successMsg && <p className="text-xs text-emerald-700 font-medium">{successMsg}</p>}
+              {errorMsg && (
+                <p className="text-xs text-red-600 font-medium">{errorMsg}</p>
+              )}
+              {successMsg && (
+                <p className="text-xs text-emerald-700 font-medium">
+                  {successMsg}
+                </p>
+              )}
 
               <button
                 type="submit"
-                disabled={!selectedFile || isUploading}
+                disabled={!selectedFile || uploadProofMutation.isPending}
                 className="w-full py-2.5 bg-[#f4917b] text-[#222432] font-bold rounded-lg text-xs flex items-center justify-center gap-2 hover:bg-[#ffc7b9] transition disabled:opacity-40"
               >
                 {hasUploadedProof ? (
-                  <RefreshCw className={`w-4 h-4 ${isUploading ? "animate-spin" : ""}`} />
+                  <RefreshCw
+                    className={`w-4 h-4 ${
+                      uploadProofMutation.isPending ? "animate-spin" : ""
+                    }`}
+                  />
                 ) : (
                   <Upload className="w-4 h-4" />
                 )}
-                {isUploading ? "Uploading..." : hasUploadedProof ? "Re-upload Proof" : "Submit Payment Proof"}
+                {uploadProofMutation.isPending
+                  ? "Uploading..."
+                  : hasUploadedProof
+                    ? "Re-upload Proof"
+                    : "Submit Payment Proof"}
               </button>
             </form>
           )}
 
-          {/* ===================================================================== */}
-          {/* SHADCN RATING REVIEW SECTION                                          */}
-          {/* ===================================================================== */}
+          {/* Review Section */}
           {canReviewThisTransaction && (
-            <div id="review" className="pt-4 border-t border-amber-200 space-y-4">
+            <div
+              id="review"
+              className="pt-4 border-t border-amber-200 space-y-4"
+            >
               {existingReview ? (
                 <Card className="border-amber-200 bg-[#fbf7f4]">
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-amber-900">Your Submitted Review</span>
+                      <span className="text-xs font-bold text-amber-900">
+                        Your Submitted Review
+                      </span>
                       <Rating rating={existingReview.rating} editable={false} />
                     </div>
-                    <p className="text-xs text-slate-700 italic">&ldquo;{existingReview.comment}&rdquo;</p>
+                    <p className="text-xs text-slate-700 italic">
+                      &ldquo;{existingReview.comment}&rdquo;
+                    </p>
                   </CardContent>
                 </Card>
               ) : (
@@ -480,7 +486,6 @@ export const TransactionPaymentPage: React.FC = () => {
                           </button>
                         </div>
 
-                        {/* Interactive shadcn Rating Component */}
                         <div className="flex flex-col items-center gap-2 p-3 rounded-xl bg-[#fbf7f4] border border-amber-100">
                           <Rating
                             rating={rating}
@@ -492,20 +497,23 @@ export const TransactionPaymentPage: React.FC = () => {
                               {rating <= 2
                                 ? "We're sorry to hear that"
                                 : rating <= 3
-                                ? "Thanks for your feedback"
-                                : "Glad you enjoyed the event!"}
+                                  ? "Thanks for your feedback"
+                                  : "Glad you enjoyed the event!"}
                             </p>
                           )}
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="review-comment" className="text-xs font-semibold text-slate-700">
+                          <Label
+                            htmlFor="review-comment"
+                            className="text-xs font-semibold text-slate-700"
+                          >
                             Your feedback
                           </Label>
                           <Textarea
                             id="review-comment"
                             rows={3}
-                            disabled={isSubmittingReview}
+                            disabled={submitReviewMutation.isPending}
                             value={comment}
                             onChange={(e) => setComment(e.target.value)}
                             placeholder="Share your experience attending this event..."
@@ -513,15 +521,18 @@ export const TransactionPaymentPage: React.FC = () => {
                           />
                         </div>
 
-                        {/* Submit Button with active onClick handler and loading indicator */}
                         <Button
                           type="button"
-                          disabled={rating === 0 || isSubmittingReview}
+                          disabled={
+                            rating === 0 || submitReviewMutation.isPending
+                          }
                           onClick={() => handleReviewSubmit()}
                           className="w-full bg-[#f4917b] text-[#222432] font-bold hover:bg-[#ffc7b9] disabled:opacity-40"
                           size="sm"
                         >
-                          {isSubmittingReview ? "Submitting..." : "Submit Review"}
+                          {submitReviewMutation.isPending
+                            ? "Submitting..."
+                            : "Submit Review"}
                         </Button>
                       </CardContent>
                     </Card>

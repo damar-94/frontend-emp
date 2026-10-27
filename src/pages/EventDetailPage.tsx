@@ -3,6 +3,8 @@ import { Navbar } from "@/components/Navbar";
 import { axiosInstance } from "@/lib/axios";
 import type { EventModel } from "@/types/event.types";
 import type { UserCoupon } from "@/types/transaction.types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { AxiosError } from "axios";
 import {
   Calendar,
   Coins,
@@ -11,14 +13,29 @@ import {
   Plus,
   Tag,
   Ticket,
+  UserCheck,
 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 // 1. Match UserRole type with schema.prisma (including ADMIN)
 type UserRole = "CUSTOMER" | "EVENTORGANIZER" | "ADMIN" | null;
+
+interface CustomerWalletData {
+  role: UserRole;
+  points: number;
+  coupons: UserCoupon[];
+}
+
+interface CreateTransactionPayload {
+  eventId: number;
+  items: { ticketTypeId: number; quantity: number }[];
+  voucherCode?: string;
+  couponCode?: string;
+  usePoints: boolean;
+}
 
 // Business rule constants matching project specifications
 const MIN_AFTER_VOUCHER_FOR_COUPON = 30000; // Rule h: Min IDR 30,000 after voucher deduction
@@ -119,79 +136,114 @@ const getAuthInfoFromStorage = (): {
 export const EventDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  // Server data states
-  const [event, setEvent] = useState<EventModel | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [userRole, setUserRole] = useState<UserRole>(null);
-  const [userPoints, setUserPoints] = useState<number>(0); // Aggregated PointLot balance from backend
-  const [userCoupons, setUserCoupons] = useState<UserCoupon[]>([]);
+  const localAuth = useMemo(() => getAuthInfoFromStorage(), []);
 
-  // Interactive checkout selection states (tickets, voucher, coupon, and points)
+  // Interactive checkout selection states (client UI state only)
   const [selectedTickets, setSelectedTickets] = useState<
     Record<number, number>
   >({});
   const [voucherCodeInput, setVoucherCodeInput] = useState<string>("");
   const [selectedCouponCode, setSelectedCouponCode] = useState<string>("");
   const [usePoints, setUsePoints] = useState<boolean>(false);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  // Fetch event details & customer wallet (aggregated PointLots + active Coupons)
-  useEffect(() => {
-    if (!id) return;
-
-    const fetchPageData = async () => {
+  // 1. Fetch Event Details via TanStack useQuery
+  const {
+    data: event,
+    isPending: isEventPending,
+    isError: isEventError,
+  } = useQuery<EventModel>({
+    queryKey: ["event", id],
+    queryFn: async () => {
       try {
-        setLoading(true);
-
-        const localAuth = getAuthInfoFromStorage();
-        setIsLoggedIn(localAuth.isLoggedIn);
-        setUserRole(localAuth.role);
-
-        // 1. Fetch event details by ID
-        const eventRes = await axiosInstance.get(`/events/${id}`);
-        setEvent(eventRes.data.data);
-
-        // 2. Rules n & b: Fetch active points balance (aggregated point_lots) & user coupons from /transactions/wallet
-        // Only call if the user is logged in to avoid 401 console errors for guests
-        if (localAuth.isLoggedIn) {
-          try {
-            const walletRes = await axiosInstance.get("/transactions/wallet");
-            const walletData = walletRes.data?.data;
-
-            if (walletData) {
-              setIsLoggedIn(true);
-              if (walletData.role) {
-                setUserRole(normalizeUserRole(walletData.role));
-              }
-              setUserPoints(Number(walletData.points ?? 0));
-              setUserCoupons(walletData.coupons ?? []);
-            }
-          } catch {
-            // Fallback to /auth/me if wallet endpoint fails
-            try {
-              const profileRes = await axiosInstance.get("/auth/me");
-              const userData = profileRes.data?.data || profileRes.data;
-              if (userData?.role) {
-                setIsLoggedIn(true);
-                setUserRole(normalizeUserRole(userData.role));
-              }
-            } catch {
-              // Keep state derived from localAuth
-            }
-          }
-        }
+        const res = await axiosInstance.get(`/events/${id}`);
+        return res.data.data;
       } catch (err) {
-        console.error("Failed to load event details:", err);
         toast.error("Failed to load event details.");
-      } finally {
-        setLoading(false);
+        throw err;
       }
-    };
+    },
+    enabled: Boolean(id),
+  });
 
-    fetchPageData();
-  }, [id]);
+  // 2. Fetch Customer Wallet (Aggregated PointLots + Active Coupons) via TanStack useQuery
+  // Only runs if the user is logged in to prevent 401 errors for guests
+  const { data: walletData } = useQuery<CustomerWalletData>({
+    queryKey: ["customer-wallet"],
+    queryFn: async () => {
+      try {
+        const walletRes = await axiosInstance.get("/transactions/wallet");
+        const data = walletRes.data?.data;
+        return {
+          role: normalizeUserRole(data?.role) ?? localAuth.role,
+          points: Number(data?.points ?? 0),
+          coupons: data?.coupons ?? [],
+        };
+      } catch {
+        // Fallback to /auth/me if wallet endpoint fails
+        try {
+          const profileRes = await axiosInstance.get("/auth/me");
+          const userData = profileRes.data?.data || profileRes.data;
+          return {
+            role: normalizeUserRole(userData?.role) ?? localAuth.role,
+            points: 0,
+            coupons: [],
+          };
+        } catch {
+          return {
+            role: localAuth.role,
+            points: 0,
+            coupons: [],
+          };
+        }
+      }
+    },
+    enabled: localAuth.isLoggedIn,
+  });
+
+  const isLoggedIn = localAuth.isLoggedIn || Boolean(walletData?.role);
+  const userRole: UserRole = walletData?.role ?? localAuth.role;
+  const userPoints = walletData?.points ?? 0;
+  const userCoupons = walletData?.coupons ?? [];
+
+  // 3. Create Transaction Checkout via TanStack useMutation
+  const checkoutMutation = useMutation({
+    mutationFn: async (payload: CreateTransactionPayload) => {
+      const response = await axiosInstance.post("/transactions", payload);
+      return response.data.data;
+    },
+    onSuccess: (createdTransaction) => {
+      queryClient.invalidateQueries({ queryKey: ["event", id] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-wallet"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-transactions"] });
+
+      toast.success(
+        "Transaction created! Please upload your payment proof within 2 hours.",
+      );
+      navigate(`/transactions/${createdTransaction.id}`);
+    },
+    onError: (err: AxiosError<{ message: string }>) => {
+      const status = err.response?.status;
+      const message =
+        err.response?.data?.message ||
+        "Failed to create transaction. Please try again.";
+
+      if (status === 403) {
+        toast.error("Only Customer accounts can purchase tickets!");
+        return;
+      }
+
+      if (status === 401 && !isLoggedIn) {
+        toast.info("Please log in first.");
+        navigate("/login");
+        return;
+      }
+
+      toast.error(message);
+    },
+  });
 
   // Pure function to format numbers strictly into Indonesian Rupiah (IDR)
   const formatIDR = (v: number) =>
@@ -219,13 +271,24 @@ export const EventDetailPage: React.FC = () => {
     });
   };
 
-  if (loading || !event) {
+  if (isEventPending) {
     return <div className="p-10 text-center">Loading event details...</div>;
   }
 
-  // ============================================================================
-  // PRICE CALCULATIONS FOLLOWING RULES c, d, f, g, h, j, n, o
-  // ============================================================================
+  if (isEventError || !event) {
+    return (
+      <div className="p-10 text-center text-red-600 font-semibold">
+        Event not found or failed to load.
+      </div>
+    );
+  }
+
+  // Extract Organizer ID, Name, and Profile Picture from event.user
+  const organizer = (event as any).user;
+  const organizerId: number | undefined =
+    organizer?.id ?? (event as any).userId;
+  const organizerName: string = organizer?.name || "Event Organizer";
+
   const subtotalIDR = event.ticketTypes.reduce((acc, ticket) => {
     const qty = selectedTickets[ticket.id || 0] || 0;
     return acc + ticket.price * qty;
@@ -290,10 +353,7 @@ export const EventDetailPage: React.FC = () => {
   // Final net price in IDR
   const finalTotalIDR = Math.max(0, afterCouponIDR - pointsDiscountIDR);
 
-  // ============================================================================
-  // SUBMIT TRANSACTION (Rule a: Only CUSTOMERS can purchase tickets)
-  // ============================================================================
-  const handleCheckoutSubmit = async () => {
+  const handleCheckoutSubmit = () => {
     if (totalSelectedTickets === 0) {
       toast.warning("Please select at least 1 ticket first.");
       return;
@@ -318,51 +378,20 @@ export const EventDetailPage: React.FC = () => {
       return;
     }
 
-    try {
-      setIsSubmitting(true);
+    const itemsPayload = Object.entries(selectedTickets)
+      .filter(([, quantity]) => quantity > 0)
+      .map(([ticketTypeId, quantity]) => ({
+        ticketTypeId: Number(ticketTypeId),
+        quantity,
+      }));
 
-      const itemsPayload = Object.entries(selectedTickets)
-        .filter(([, quantity]) => quantity > 0)
-        .map(([ticketTypeId, quantity]) => ({
-          ticketTypeId: Number(ticketTypeId),
-          quantity,
-        }));
-
-      const response = await axiosInstance.post("/transactions", {
-        eventId: event.id,
-        items: itemsPayload,
-        voucherCode: matchedVoucher ? matchedVoucher.code : undefined,
-        couponCode: matchedCoupon ? matchedCoupon.code : undefined,
-        usePoints: Boolean(usePoints && canUsePoints),
-      });
-
-      const createdTransactionId = response.data.data.id;
-
-      toast.success(
-        "Transaction created! Please upload your payment proof within 2 hours.",
-      );
-      navigate(`/transactions/${createdTransactionId}`);
-    } catch (err: any) {
-      const status = err.response?.status;
-      const message =
-        err.response?.data?.message ||
-        "Failed to create transaction. Please try again.";
-
-      if (status === 403) {
-        toast.error("Only Customer accounts can purchase tickets!");
-        return;
-      }
-
-      if (status === 401 && !effectivelyLoggedIn) {
-        toast.info("Please log in first.");
-        navigate("/login");
-        return;
-      }
-
-      toast.error(message);
-    } finally {
-      setIsSubmitting(false);
-    }
+    checkoutMutation.mutate({
+      eventId: event.id,
+      items: itemsPayload,
+      voucherCode: matchedVoucher ? matchedVoucher.code : undefined,
+      couponCode: matchedCoupon ? matchedCoupon.code : undefined,
+      usePoints: Boolean(usePoints && canUsePoints),
+    });
   };
 
   // Filter only active vouchers that still have remaining quota: maxUsage > (usedCount ?? 0)
@@ -394,6 +423,21 @@ export const EventDetailPage: React.FC = () => {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-amber-800 mt-1">
                 {event.name}
               </h1>
+
+              {/* Created by Organizer Name */}
+              {organizerId && (
+                <div className="mt-3 inline-block">
+                  <div className="text-left">
+                    <p className="text-[11px] text-slate-400 leading-none">
+                      Created by
+                    </p>
+                    <p className="text-xs font-bold text-slate-800 group-hover:text-[#f4917b] transition-colors flex items-center gap-1 mt-0.5">
+                      <UserCheck className="w-3.5 h-3.5 text-[#f4917b]" />
+                      <span>{organizerName}</span>
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-4 text-xs sm:text-sm text-slate-600">
@@ -572,7 +616,7 @@ export const EventDetailPage: React.FC = () => {
                       </select>
                       {!isEligibleForCoupon && (
                         <p className="text-[11px] text-amber-800 mt-1">
-                          * Minimum transaction value after voucher deduction is{" "}
+                          Minimum transaction value after voucher deduction is{" "}
                           {formatIDR(MIN_AFTER_VOUCHER_FOR_COUPON)} to use a
                           coupon.
                         </p>
@@ -623,9 +667,8 @@ export const EventDetailPage: React.FC = () => {
                       </label>
                       {subtotalIDR < MIN_TRX_FOR_POINTS && (
                         <p className="text-[10px] text-amber-800">
-                          * Minimum transaction of{" "}
-                          {formatIDR(MIN_TRX_FOR_POINTS)} required to use
-                          points.
+                          Minimum transaction of {formatIDR(MIN_TRX_FOR_POINTS)}{" "}
+                          required to use points.
                         </p>
                       )}
                     </div>
@@ -641,21 +684,21 @@ export const EventDetailPage: React.FC = () => {
                     {voucherDiscountIDR > 0 && (
                       <div className="flex justify-between text-emerald-700">
                         <span>Voucher Discount</span>
-                        <span>- {formatIDR(voucherDiscountIDR)}</span>
+                        <span>-{formatIDR(voucherDiscountIDR)}</span>
                       </div>
                     )}
 
                     {couponDiscountIDR > 0 && (
                       <div className="flex justify-between text-emerald-700">
                         <span>Coupon Discount</span>
-                        <span>- {formatIDR(couponDiscountIDR)}</span>
+                        <span>-{formatIDR(couponDiscountIDR)}</span>
                       </div>
                     )}
 
                     {pointsDiscountIDR > 0 && (
                       <div className="flex justify-between text-amber-700 font-medium">
                         <span>Points Used</span>
-                        <span>- {formatIDR(pointsDiscountIDR)}</span>
+                        <span>-{formatIDR(pointsDiscountIDR)}</span>
                       </div>
                     )}
 
@@ -669,11 +712,11 @@ export const EventDetailPage: React.FC = () => {
 
                   <button
                     type="button"
-                    disabled={isSubmitting}
+                    disabled={checkoutMutation.isPending}
                     onClick={handleCheckoutSubmit}
                     className="w-full py-2.5 bg-[#f4917b] text-[#222432] rounded-lg text-xs font-bold hover:bg-[#ffc7b9] transition flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50"
                   >
-                    {isSubmitting
+                    {checkoutMutation.isPending
                       ? "Processing Checkout..."
                       : "Checkout & Pay Now"}
                   </button>

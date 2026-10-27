@@ -8,10 +8,12 @@ import {
   Loader2,
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useDebounce } from "../hooks/useDebounce";
 import { axiosInstance } from "@/lib/axios";
 import { useAuth } from "@/stores/useAuth";
 import { useNavigate } from "react-router";
+import type { EventModel } from "@/types/event.types";
 
 interface CategoryItem {
   id: number;
@@ -28,9 +30,7 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  // Dynamic Categories from Database
-  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Auth State
   const { user, logout } = useAuth() as {
@@ -49,34 +49,45 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
           ? "/event-organizer-dashboard"
           : "/login";
 
-  // Search Suggestions State
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const mobileSearchContainerRef = useRef<HTMLDivElement>(null);
 
   const debouncedSearch = useDebounce(searchTerm, 400);
 
-  // Fetch Categories from Database
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await axiosInstance.get("/categories");
-        const list = Array.isArray(res.data?.data)
-          ? res.data.data
-          : Array.isArray(res.data)
-            ? res.data
-            : [];
-        setCategories(list);
-      } catch (error) {
-        console.error("Failed to fetch categories:", error);
-      }
-    };
+  // 1. Fetch Categories from Database via TanStack Query
+  const { data: categories = [] } = useQuery<CategoryItem[]>({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const res = await axiosInstance.get("/categories");
+      return Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res.data)
+          ? res.data
+          : [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-    fetchCategories();
-  }, []);
+  // 2. Fetch Search Suggestions via TanStack Query (only when debouncedSearch is non-empty)
+  const { data: suggestions = [], isFetching: isSearching } = useQuery<
+    EventModel[]
+  >({
+    queryKey: ["event-suggestions", debouncedSearch.trim()],
+    queryFn: async () => {
+      const res = await axiosInstance.get("/events", {
+        params: { search: debouncedSearch.trim(), limit: 5 },
+      });
+      return (res.data?.data || []).slice(0, 5);
+    },
+    enabled: Boolean(debouncedSearch.trim()),
+  });
+
+  // Notify parent onSearch callback when debouncedSearch changes
+  useEffect(() => {
+    if (onSearch) {
+      onSearch(debouncedSearch);
+    }
+  }, [debouncedSearch, onSearch]);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -95,33 +106,6 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Fetch suggestions when debounced search changes
-  useEffect(() => {
-    if (onSearch) {
-      onSearch(debouncedSearch);
-    }
-
-    if (debouncedSearch.trim()) {
-      const fetchSuggestions = async () => {
-        setIsSearching(true);
-        try {
-          const res = await axiosInstance.get("/events", {
-            params: { search: debouncedSearch },
-          });
-          setSuggestions(res.data.data.slice(0, 5));
-        } catch (error) {
-          console.error("Failed to fetch suggestions", error);
-          setSuggestions([]);
-        } finally {
-          setIsSearching(false);
-        }
-      };
-      fetchSuggestions();
-    } else {
-      setSuggestions([]);
-    }
-  }, [debouncedSearch, onSearch]);
-
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
     setShowSuggestions(true);
@@ -129,7 +113,7 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
 
   const clearSearch = () => {
     setSearchTerm("");
-    setSuggestions([]);
+    setShowSuggestions(false);
   };
 
   const handleAuthAction = (e: React.MouseEvent) => {

@@ -1,10 +1,17 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Eye, RefreshCw, AlertCircle, Star } from "lucide-react";
-import { axiosInstance } from "@/lib/axios";
+import {
+  Eye,
+  RefreshCw,
+  AlertCircle,
+  Star,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useCustomerTransactionsQuery } from "@/hooks/useTransactionQueries";
+import type { PaginationMeta } from "@/types/pagination.types";
 
-// 1. Six transaction statuses matching schema.prisma
 export type TransactionStatus =
   | "WAITING_FOR_PAYMENT"
   | "WAITING_FOR_ADMIN_CONFIRMATION"
@@ -13,7 +20,6 @@ export type TransactionStatus =
   | "EXPIRED"
   | "CANCELED";
 
-// 2. Transaction type matching backend response (including endDate & attendances.reviews)
 export type Transaction = {
   id: number;
   status: TransactionStatus;
@@ -49,7 +55,6 @@ export type Transaction = {
   }[];
 };
 
-// 3. Status badge labels
 const statusLabels: Record<TransactionStatus, string> = {
   WAITING_FOR_PAYMENT: "Waiting for Payment",
   WAITING_FOR_ADMIN_CONFIRMATION: "Waiting for Confirmation",
@@ -59,7 +64,6 @@ const statusLabels: Record<TransactionStatus, string> = {
   CANCELED: "Canceled",
 };
 
-// 4. Status badge Tailwind styles
 const statusStyles: Record<TransactionStatus, string> = {
   WAITING_FOR_PAYMENT: "bg-yellow-100 text-yellow-700",
   WAITING_FOR_ADMIN_CONFIRMATION: "bg-blue-100 text-blue-700",
@@ -69,38 +73,52 @@ const statusStyles: Record<TransactionStatus, string> = {
   CANCELED: "bg-gray-100 text-gray-600",
 };
 
+const PAGE_TAKE = 5;
+
 export function CustomerTransactions() {
-  // 5. Initialize React Router navigation hook
   const navigate = useNavigate();
 
-  // 6. Regular state for transactions list, loading, error, and status filter
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  // Only keep client UI state (active page & selected status filter)
+  const [page, setPage] = useState<number>(1);
+  const [statusFilter, setStatusFilter] = useState<TransactionStatus | "ALL">(
+    "ALL",
+  );
 
-  // 7. Pure async function to fetch customer transaction history from GET /transactions
-  const fetchTransactions = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setErrorMsg(null);
-      const res = await axiosInstance.get("/transactions");
-      setTransactions(res.data.data || []);
-    } catch (err: any) {
-      setErrorMsg(
-        err.response?.data?.message || "Failed to load transaction history."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  // Fetch paginated transactions from Backend via TanStack Query
+  const {
+    data: response,
+    isLoading,
+    isFetching,
+    isPlaceholderData,
+    error,
+    refetch,
+  } = useCustomerTransactionsQuery({
+    page,
+    take: PAGE_TAKE,
+    status: statusFilter,
+  });
 
-  // 8. Fetch transactions when component mounts
-  useEffect(() => {
-    fetchTransactions();
-  }, [fetchTransactions]);
+  const transactions = response?.data ?? [];
+  const meta: PaginationMeta = response?.meta ?? {
+    page: 1,
+    take: PAGE_TAKE,
+    total: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+  };
 
-  // 9. Pure helper to format IDR currency
+  const errorMsg =
+    (error as any)?.response?.data?.message ||
+    (error as Error)?.message ||
+    null;
+
+  // Reset to page 1 whenever status filter changes
+  const handleStatusChange = (newStatus: TransactionStatus | "ALL") => {
+    setStatusFilter(newStatus);
+    setPage(1);
+  };
+
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -108,7 +126,6 @@ export function CustomerTransactions() {
       maximumFractionDigits: 0,
     }).format(amount);
 
-  // 10. Pure helper to format ISO date string
   const formatDate = (date: string) =>
     new Intl.DateTimeFormat("id-ID", {
       day: "2-digit",
@@ -118,22 +135,19 @@ export function CustomerTransactions() {
       minute: "2-digit",
     }).format(new Date(date));
 
-  // 11. Pure helper to get unique event names per transaction
   const getEventNames = (transaction: Transaction) => {
     const names = (transaction.transactionItems ?? []).map(
-      (item) => item.ticketType?.event?.name || "Event"
+      (item) => item.ticketType?.event?.name || "Event",
     );
     return [...new Set(names)].join(", ");
   };
 
-  // 12. Pure helper to sum total ticket quantity per transaction
   const getTotalTickets = (transaction: Transaction) =>
     (transaction.transactionItems ?? []).reduce(
       (total, item) => total + item.quantity,
-      0
+      0,
     );
 
-  // 13. Pure helper: Check if event's endDate < current date
   const hasEventEnded = (transaction: Transaction): boolean => {
     const endDateStr =
       transaction.transactionItems?.[0]?.ticketType?.event?.endDate;
@@ -141,16 +155,9 @@ export function CustomerTransactions() {
     return new Date(endDateStr).getTime() < Date.now();
   };
 
-  // 14. Pure helper: Check if customer already submitted a review for this transaction
   const hasAlreadyReviewed = (transaction: Transaction): boolean => {
     return (transaction.attendances?.[0]?.reviews?.length ?? 0) > 0;
   };
-
-  // 15. Filter transactions by status
-  const filteredTransactions =
-    statusFilter === "ALL"
-      ? transactions
-      : transactions.filter((t) => t.status === statusFilter);
 
   return (
     <div className="space-y-6">
@@ -161,18 +168,21 @@ export function CustomerTransactions() {
             My Transactions
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            View your transaction history, payment details, and review past events.
+            View your transaction history, payment details, and review past
+            events.
           </p>
         </div>
 
         <Button
           variant="outline"
           size="sm"
-          onClick={fetchTransactions}
-          disabled={isLoading}
+          onClick={() => refetch()}
+          disabled={isFetching}
           className="gap-2 self-start sm:self-auto"
         >
-          <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
+          />
           Refresh
         </Button>
       </div>
@@ -193,7 +203,7 @@ export function CustomerTransactions() {
           <button
             key={status}
             type="button"
-            onClick={() => setStatusFilter(status)}
+            onClick={() => handleStatusChange(status)}
             className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
               statusFilter === status
                 ? "bg-gray-900 text-white"
@@ -238,7 +248,11 @@ export function CustomerTransactions() {
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-gray-100">
+            <tbody
+              className={`divide-y divide-gray-100 transition-opacity duration-200 ${
+                isPlaceholderData ? "opacity-60" : "opacity-100"
+              }`}
+            >
               {isLoading ? (
                 <tr>
                   <td
@@ -248,9 +262,8 @@ export function CustomerTransactions() {
                     Loading your transactions...
                   </td>
                 </tr>
-              ) : filteredTransactions.length > 0 ? (
-                filteredTransactions.map((transaction) => {
-                  // Check Review Button eligibility: status === "DONE" AND event.endDate < current date
+              ) : transactions.length > 0 ? (
+                transactions.map((transaction) => {
                   const canShowReviewButton =
                     transaction.status === "DONE" &&
                     hasEventEnded(transaction) &&
@@ -296,7 +309,6 @@ export function CustomerTransactions() {
                         </span>
                       </td>
 
-                      {/* Actions Column: View Details + Conditional Review Button */}
                       <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center gap-2">
                           <Button
@@ -311,14 +323,13 @@ export function CustomerTransactions() {
                             View Details
                           </Button>
 
-                          {/* Review Button: ONLY appears when status === "DONE" and event.endDate < now */}
                           {canShowReviewButton && (
                             <Button
                               size="sm"
                               className="gap-1.5 bg-[#f4917b] text-[#222432] hover:bg-[#ffc7b9] font-semibold"
                               onClick={() =>
                                 navigate(
-                                  `/transactions/${transaction.id}#review`
+                                  `/transactions/${transaction.id}#review`,
                                 )
                               }
                             >
@@ -327,7 +338,6 @@ export function CustomerTransactions() {
                             </Button>
                           )}
 
-                          {/* Reviewed Badge if customer already submitted a review */}
                           {isReviewed && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-semibold text-amber-800">
                               <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
@@ -345,13 +355,72 @@ export function CustomerTransactions() {
                     colSpan={6}
                     className="px-6 py-12 text-center text-gray-500"
                   >
-                    You don't have any transactions yet.
+                    No transactions found.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Backend Pagination Controls */}
+        {meta.totalPages > 1 && (
+          <div className="flex flex-col items-center justify-between gap-4 border-t border-gray-200 bg-gray-50 px-6 py-4 sm:flex-row">
+            <p className="text-xs text-gray-500">
+              Showing page{" "}
+              <span className="font-semibold text-gray-900">{meta.page}</span>{" "}
+              of{" "}
+              <span className="font-semibold text-gray-900">
+                {meta.totalPages}
+              </span>{" "}
+              ({meta.total} total transactions)
+            </p>
+
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={!meta.hasPrevPage || isPlaceholderData}
+                className="h-8 gap-1 px-2.5 text-xs"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+                Prev
+              </Button>
+
+              {Array.from({ length: meta.totalPages }, (_, i) => i + 1).map(
+                (pageNum) => (
+                  <button
+                    key={pageNum}
+                    type="button"
+                    onClick={() => setPage(pageNum)}
+                    disabled={isPlaceholderData}
+                    className={`h-8 w-8 rounded-md text-xs font-semibold transition ${
+                      meta.page === pageNum
+                        ? "bg-gray-900 text-white"
+                        : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                ),
+              )}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setPage((prev) => Math.min(meta.totalPages, prev + 1))
+                }
+                disabled={!meta.hasNextPage || isPlaceholderData}
+                className="h-8 gap-1 px-2.5 text-xs"
+              >
+                Next
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
