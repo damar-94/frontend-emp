@@ -396,53 +396,81 @@ export const CreateEventPage: React.FC = () => {
                 <Plus className="w-3.5 h-3.5" /> Add Tier
               </button>
             </div>
-            <div className="flex gap-3 items-center px-3 py-2 text-xs font-semibold text-slate-600">
-              <div className="flex-1">Ticket Name</div>
+
+            {/* Header Tabel: disembunyikan di mobile (hidden), muncul di layar >= sm (sm:flex) */}
+            <div className="hidden sm:flex gap-3 items-center px-3 py-2 text-xs font-semibold text-slate-600">
+              <div className="flex-1 min-w-0">Ticket Name</div>
               <div className="w-32">Price</div>
               <div className="w-24">Seat Quota</div>
-              {fields.length > 1 && <div className="w-4" />}
+              {fields.length > 1 && <div className="w-6" />}
             </div>
 
             <div className="space-y-3">
               {fields.map((field, index) => (
                 <div
                   key={field.id}
-                  className="flex gap-3 items-center p-3 rounded-lg border border-[#ffc7b9]"
+                  className="flex flex-col sm:flex-row gap-3 sm:items-center p-3 rounded-lg border border-[#ffc7b9] bg-white/50"
                 >
-                  <input
-                    placeholder="Ticket Name (e.g. VIP / Free Pass)"
-                    {...register(`tickets.${index}.name` as const, {
-                      required: true,
-                    })}
-                    className="flex-1 px-3 py-1.5 border rounded text-xs bg-white"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Price (0 for Free)"
-                    {...register(`tickets.${index}.price` as const, {
-                      required: true,
-                      valueAsNumber: true,
-                    })}
-                    className="w-32 px-3 py-1.5 border rounded text-xs bg-white"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Seat Quota"
-                    {...register(`tickets.${index}.totalSeat` as const, {
-                      required: true,
-                      valueAsNumber: true,
-                    })}
-                    className="w-24 px-3 py-1.5 border rounded text-xs bg-white"
-                  />
-                  {fields.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => remove(index)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
+                  {/* 1. Input Ticket Name (Full width di mobile, flex-1 di desktop) */}
+                  <div className="w-full sm:flex-1 min-w-0">
+                    <label className="block sm:hidden text-[11px] font-semibold text-slate-600 mb-1">
+                      Ticket Name
+                    </label>
+                    <input
+                      placeholder="Ticket Name (e.g. VIP / Free Pass)"
+                      {...register(`tickets.${index}.name` as const, {
+                        required: true,
+                      })}
+                      className="w-full px-3 py-1.5 border rounded text-xs bg-white outline-none focus:ring-1 focus:ring-[#f4917b]"
+                    />
+                  </div>
+
+                  {/* 2. Wrapper Price, Seat Quota & Tombol Hapus (Sebaris rapi di mobile & desktop) */}
+                  <div className="flex items-end sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                    {/* Input Price */}
+                    <div className="flex-1 sm:flex-none sm:w-32 min-w-0">
+                      <label className="block sm:hidden text-[11px] font-semibold text-slate-600 mb-1">
+                        Price (IDR)
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="Price (0 for Free)"
+                        {...register(`tickets.${index}.price` as const, {
+                          required: true,
+                          valueAsNumber: true,
+                        })}
+                        className="w-full px-3 py-1.5 border rounded text-xs bg-white outline-none focus:ring-1 focus:ring-[#f4917b]"
+                      />
+                    </div>
+
+                    {/* Input Seat Quota */}
+                    <div className="flex-1 sm:flex-none sm:w-24 min-w-0">
+                      <label className="block sm:hidden text-[11px] font-semibold text-slate-600 mb-1">
+                        Seat Quota
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="Seat Quota"
+                        {...register(`tickets.${index}.totalSeat` as const, {
+                          required: true,
+                          valueAsNumber: true,
+                        })}
+                        className="w-full px-3 py-1.5 border rounded text-xs bg-white outline-none focus:ring-1 focus:ring-[#f4917b]"
+                      />
+                    </div>
+
+                    {/* Tombol Hapus Tier */}
+                    {fields.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => remove(index)}
+                        className="p-1.5 sm:p-1 text-red-500 hover:text-red-700 shrink-0 mb-0.5 sm:mb-0"
+                        title="Remove ticket tier"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
