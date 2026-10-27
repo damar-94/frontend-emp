@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Coustard:wght@400;900&display=swap");
 @keyframes slide-up {
   from {
     opacity: 0;
@@ -14,7 +15,6 @@
   animation: slide-up 0.4s ease-out both;
 }
 
-@import url("https://fonts.googleapis.com/css2?family=Coustard:wght@400;900&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
