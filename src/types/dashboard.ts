@@ -39,51 +39,51 @@ export interface GetUsersResponse extends PaginationResponse<AdminUser> {}
 
 // Dashboard Organizer
 
-export interface FindOrganizerEvents {
-  data: {
+export interface FindOrganizerEvent {
+  id: number;
+  userId: number;
+  categoryId: number;
+  name: string;
+  description: string;
+  location: string;
+  totalSeat: number;
+  availableSeat: number;
+  startDate: string;
+  endDate: string;
+  thumbnail: string;
+  createdAt: string;
+  updatedAt: string;
+  category: {
     id: number;
-    userId: number;
-    categoryId: number;
     name: string;
-    description: string;
-    location: string;
+    createdAt: string;
+  };
+  ticketTypes: {
+    id: number;
+    eventId: number;
+    name: string;
+    price: number;
     totalSeat: number;
     availableSeat: number;
-    startDate: string;
-    endDate: string;
-    thumbnail: string;
     createdAt: string;
-    updatedAt: string;
-    category: {
-      id: number;
-      name: string;
-      createdAt: string;
-    };
-    ticketTypes: {
-      id: number;
-      eventId: number;
-      name: string;
-      price: number;
-      totalSeat: number;
-      availableSeat: number;
-      createdAt: string;
-    }[];
-    vouchers: {
-      id: number;
-      eventId: number;
-      code: string;
-      notes: string;
-      discountValue: number;
-      maxUsage: number;
-      usedCount: number;
-      startAt: string;
-      expiresAt: string;
-      isActive: boolean;
-      createdAt: string;
-    }[];
-    ticketSold: number;
   }[];
+  vouchers: {
+    id: number;
+    eventId: number;
+    code: string;
+    notes: string;
+    discountValue: number;
+    maxUsage: number;
+    usedCount: number;
+    startAt: string;
+    expiresAt: string;
+    isActive: boolean;
+    createdAt: string;
+  }[];
+  ticketSold: number;
 }
+
+export interface FindOrganizerEvents extends PaginationResponse<FindOrganizerEvent> {}
 
 export type UpdateEventInput = {
   categoryId: number;
@@ -146,4 +146,43 @@ export interface OrganizerTransaction {
   ticketQuantity: number;
   totalPayment: number;
   paymentProof: string | null;
+}
+
+export interface DeleteEventResponse {
+  message: string;
+  data: {
+    id: number;
+    deletedAt: string;
+  };
+}
+
+export interface PointsHistory {
+  id:number;
+  amount:number;
+  creditedAt: string;
+  remainingAmount: number;
+  expiresAt: string;
+}
+
+export interface PointsHistoryResponse {
+  data: PointsHistory[];
+  meta: {
+    page: number;
+    take: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface PointsHistoryParams {
+  page?: number;
+  take?: number;
+}
+
+export interface OrganizerEventVoucher {
+  code: string;
+  discountValue: number;
+  maxUsage: number;
+  startAt: string;
+  expiresAt: string;
 }

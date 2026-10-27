@@ -97,7 +97,7 @@ export default function EventOrganizerOverview() {
 
   const chartTitle = metric === "tickets" ? "Tickets Sold" : "Revenue";
 
-  const chartColor = "#DB2777";
+  const chartColor = "#f4917b";
 
   const formatMetric = (value: number) =>
     metric === "revenue"
@@ -138,7 +138,7 @@ export default function EventOrganizerOverview() {
                     : totalRevenueError
                       ? "Error"
                       : formatRupiah(totalRevenue ?? 0)
-                    : card.value;
+                  : card.value;
 
           return (
             <div
@@ -154,7 +154,7 @@ export default function EventOrganizerOverview() {
                   <p className="text-2xl font-bold tracking-tight">{value}</p>
                 </div>
 
-                <div className="rounded-lg bg-pink-50 p-2.5 text-pink-600">
+                <div className="rounded-lg bg-pink-50 p-2.5 text-[#f4917b]">
                   <Icon className="h-5 w-5" />
                 </div>
               </div>
@@ -177,11 +177,11 @@ export default function EventOrganizerOverview() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2 lg:flex lg:flex-nowrap lg:justify-end">
             <select
               value={metric}
               onChange={(event) => setMetric(event.target.value as Metric)}
-              className="h-9 rounded-md border bg-background px-3 text-sm"
+              className="h-9 w-full min-w-0 rounded-md border bg-background px-3 text-sm lg:min-w-[140px] focus:outline-none focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e] focus-visible:ring-2"
             >
               <option value="tickets">Tickets Sold</option>
               <option value="revenue">Revenue</option>
@@ -190,7 +190,7 @@ export default function EventOrganizerOverview() {
             <select
               value={period}
               onChange={(event) => setPeriod(event.target.value as Period)}
-              className="h-9 rounded-md border bg-background px-3 text-sm"
+              className="h-9 w-full min-w-0 rounded-md border bg-background px-3 text-sm focus:outline-none focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e] focus-visible:ring-2"
             >
               <option value="year">Year</option>
               <option value="month">Month</option>
@@ -207,7 +207,7 @@ export default function EventOrganizerOverview() {
                     Number(selectedDate.slice(8, 10)),
                   )
                 }
-                className="h-9 rounded-md border bg-background px-3 text-sm"
+                className="h-9 w-full min-w-0 rounded-md border bg-background px-3 text-sm focus:outline-none focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e] focus-visible:ring-2"
               >
                 <option value="2025">2025</option>
                 <option value="2026">2026</option>
@@ -225,7 +225,7 @@ export default function EventOrganizerOverview() {
                     Number(selectedDate.slice(8, 10)),
                   )
                 }
-                className="h-9 rounded-md border bg-background px-3 text-sm"
+                className="h-9 w-full min-w-0 rounded-md border bg-background px-3 text-sm"
               >
                 {Array.from({ length: 12 }, (_, index) => {
                   const month = String(index + 1).padStart(2, "0");
@@ -234,9 +234,7 @@ export default function EventOrganizerOverview() {
                     <option key={month} value={month}>
                       {new Date(Number(selectedYear), index).toLocaleString(
                         "en-US",
-                        {
-                          month: "long",
-                        },
+                        { month: "long" },
                       )}
                     </option>
                   );
@@ -249,7 +247,7 @@ export default function EventOrganizerOverview() {
                 type="date"
                 value={selectedDate}
                 onChange={(event) => setSelectedDate(event.target.value)}
-                className="h-9 rounded-md border bg-background px-3 text-sm"
+                className="h-9 w-full min-w-0 rounded-md border bg-background px-3 text-sm"
               />
             )}
           </div>

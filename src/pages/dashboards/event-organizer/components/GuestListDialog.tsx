@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useFindEventGuestList } from "@/hooks/API/dashboard/organizerDashboard/useFindEventGuestList";
+import { useDebounceValue } from "usehooks-ts";
 
 interface GuestListEvent {
   id: number;
@@ -37,6 +38,7 @@ export default function GuestListDialog({
   onOpenChange,
 }: GuestListDialogProps) {
   const [guestSearch, setGuestSearch] = useState("");
+  const [debouncedSearch] = useDebounceValue(guestSearch, 700);
   const [guestPage, setGuestPage] = useState(1);
 
   const eventId = event?.id ?? 0;
@@ -45,7 +47,7 @@ export default function GuestListDialog({
     eventId,
     page: guestPage,
     take: guestsPerPage,
-    search: guestSearch,
+    search: debouncedSearch,
     enabled: open && eventId > 0,
   });
 
@@ -91,7 +93,7 @@ export default function GuestListDialog({
               setGuestPage(1);
             }}
             placeholder="Search participant name..."
-            className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-pink-500"
+            className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-[#f4917b]"
           />
         </div>
 

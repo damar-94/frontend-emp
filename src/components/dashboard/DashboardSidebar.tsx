@@ -1,8 +1,11 @@
+import { useAuth } from "@/stores/useAuth";
 import {
   CalendarDays,
   ChevronDown,
+  House,
   LayoutDashboard,
   LockKeyhole,
+  LogOut,
   MessageSquare,
   Receipt,
   Settings,
@@ -14,7 +17,7 @@ import {
 
 import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
-import { Link, NavLink } from "react-router";
+import { Link, NavLink, useNavigate } from "react-router";
 
 type DashboardRole = "ADMIN" | "EVENTORGANIZER" | "CUSTOMER";
 
@@ -32,7 +35,6 @@ const menuByRole: Record<DashboardRole, MenuItem[]> = {
   ADMIN: [
     { label: "Overview", icon: LayoutDashboard, path: "/admin" },
     { label: "Manage Users", icon: Users, path: "/admin/users" },
-    { label: "Manage Events", icon: CalendarDays, path: "/admin/events" },
     { label: "Categories", icon: Tags, path: "/admin/categories" },
   ],
 
@@ -70,11 +72,6 @@ const menuByRole: Record<DashboardRole, MenuItem[]> = {
       icon: Wallet,
       path: "/customer-dashboard/points",
     },
-    {
-      label: "My Review",
-      icon: MessageSquare,
-      path: "/customer-dashboard/reviews",
-    },
   ],
 };
 
@@ -91,18 +88,26 @@ const changePasswordPathByRole: Record<DashboardRole, string> = {
 };
 
 export function DashboardSidebar({ role }: DashboardSidebarProps) {
+  const navigate = useNavigate();
+  const logout = useAuth((state) => state.logout);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   const menuItems = menuByRole[role];
   const [isSettingOpen, setIsSettingOpen] = useState(false);
 
   const linkClassName = (isActive: boolean) =>
     `flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
       isActive
-        ? "bg-pink-50 text-pink-700"
-        : "text-gray-600 hover:bg-pink-50 hover:text-pink-700"
+        ? "bg-pink-50 text-[#f4917b]"
+        : "text-gray-600 hover:bg-pink-50 hover:text-[#f4917b]"
     }`;
 
   return (
-    <div className="min-w-0 p-4">
+    <div className="flex h-full min-w-0 flex-col p-4">
       <div className="mb-8 px-2">
         <Link to="/" className="text-xl font-bold text-gray-900">
           EventTix
@@ -117,7 +122,7 @@ export function DashboardSidebar({ role }: DashboardSidebarProps) {
         </p>
       </div>
 
-      <nav className="space-y-1">
+      <nav className="flex-1 space-y-1">
         {menuItems.map((item) => {
           const Icon = item.icon;
 
@@ -136,42 +141,65 @@ export function DashboardSidebar({ role }: DashboardSidebarProps) {
             </NavLink>
           );
         })}
+        <div className="mt-6 border-t pt-4">
+          <button
+            type="button"
+            onClick={() => setIsSettingOpen(!isSettingOpen)}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-pink-50 hover:text-[#f4917b]"
+          >
+            <Settings className="h-5 w-5" />
+            Settings
+            <ChevronDown
+              className={`ml-auto h-4 w-4 transition-transform ${
+                isSettingOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {isSettingOpen && (
+            <div className="ml-8 mt-1 space-y-1">
+              <NavLink
+                to={profilePathByRole[role]}
+                className={({ isActive }) => linkClassName(isActive)}
+              >
+                <UserRound className="h-4 w-4" />
+                Profile
+              </NavLink>
+
+              <NavLink
+                to={changePasswordPathByRole[role]}
+                className={({ isActive }) => linkClassName(isActive)}
+              >
+                <LockKeyhole className="h-4 w-4" />
+                Change Password
+              </NavLink>
+            </div>
+          )}
+        </div>
+        <div className="">
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) => linkClassName(isActive)}
+          >
+            <House className="h-5 w-5 shrink-0" />
+            <span>Back to Main Menu</span>
+          </NavLink>
+        </div>
       </nav>
 
-      <div className="mt-6 border-t pt-4">
-        <button
-          type="button"
-          onClick={() => setIsSettingOpen(!isSettingOpen)}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-pink-50 hover:text-pink-700"
+      <div className="mt-auto border-t pt-4">
+        <NavLink
+          to="/"
+          onClick={(event) => {
+            event.preventDefault();
+            handleLogout();
+          }}
+          className={({ isActive }) => linkClassName(isActive)}
         >
-          <Settings className="h-5 w-5" />
-          Settings
-          <ChevronDown
-            className={`ml-auto h-4 w-4 transition-transform ${
-              isSettingOpen ? "rotate-180" : ""
-            }`}
-          />
-        </button>
-
-        {isSettingOpen && (
-          <div className="ml-8 mt-1 space-y-1">
-            <NavLink
-              to={profilePathByRole[role]}
-              className={({ isActive }) => linkClassName(isActive)}
-            >
-              <UserRound className="h-4 w-4" />
-              Profile
-            </NavLink>
-
-            <NavLink
-              to={changePasswordPathByRole[role]}
-              className={({ isActive }) => linkClassName(isActive)}
-            >
-              <LockKeyhole className="h-4 w-4" />
-              Change Password
-            </NavLink>
-          </div>
-        )}
+          <LogOut className="h-5 w-5 shrink-0" />
+          <span>Logout</span>
+        </NavLink>
       </div>
     </div>
   );

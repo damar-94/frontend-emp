@@ -13,26 +13,24 @@ import RegisterPage from "./pages/RegisterPage";
 import ResetPasswordPage from "./pages/ResetPassword";
 import { TransactionPaymentPage } from "./pages/TransactionPaymentPage";
 
-import AdminDashboardLayout from "./pages/dashboards/admin/AdminDashboardLayout";
-import { AdminOverview } from "./pages/dashboards/admin/AdminOverview";
-import { AdminManageUsers } from "./pages/dashboards/admin/AdminManageUsers";
-import AdminManageEvents from "./pages/dashboards/admin/AdminManageEvents";
 import { AdminCategory } from "./pages/dashboards/admin/AdminCategory";
-import { ProfileUser } from "./pages/dashboards/shared/ProfileUser";
+import AdminDashboardLayout from "./pages/dashboards/admin/AdminDashboardLayout";
+import { AdminManageUsers } from "./pages/dashboards/admin/AdminManageUsers";
+import { AdminOverview } from "./pages/dashboards/admin/AdminOverview";
 import { ChangePasswordUser } from "./pages/dashboards/shared/ChangePasswordUser";
+import { ProfileUser } from "./pages/dashboards/shared/ProfileUser";
 
 import CustomerDashboardLayout from "./pages/dashboards/customer/CustomerDashboardLayout";
-import { CustomerTransactions } from "./pages/dashboards/customer/CustomerTransactions";
 import { CustomerPoints } from "./pages/dashboards/customer/CustomerPoints";
-import { CustomerReview } from "./pages/dashboards/customer/CustomerReview";
+import { CustomerTransactions } from "./pages/dashboards/customer/CustomerTransactions";
 
-import OrganizerDashboardLayout from "./pages/dashboards/event-organizer/EventOrganizerDashboardLayout";
-import EventOrganizerOverview from "./pages/dashboards/event-organizer/EventOrganizerOverview";
-import EventOrganizerMyEvents from "./pages/dashboards/event-organizer/EventOrganizerMyEvents";
-import EventOrganizerTransactions from "./pages/dashboards/event-organizer/EventOrganizerTransactions";
-import { EventOrganizerReviews } from "./pages/dashboards/event-organizer/EventOrganizerReviews";
-import { adminDashboardLoader, customerDashboardLoader, organizerDashboardLoader } from "./loaders/roleDashboardLoader";
 import { organizerLoader } from "./loaders/organizerLoader";
+import { adminDashboardLoader, customerDashboardLoader, organizerDashboardLoader } from "./loaders/roleDashboardLoader";
+import OrganizerDashboardLayout from "./pages/dashboards/event-organizer/EventOrganizerDashboardLayout";
+import EventOrganizerMyEvents from "./pages/dashboards/event-organizer/EventOrganizerMyEvents";
+import EventOrganizerOverview from "./pages/dashboards/event-organizer/EventOrganizerOverview";
+import { EventOrganizerReviews } from "./pages/dashboards/event-organizer/EventOrganizerReviews";
+import EventOrganizerTransactions from "./pages/dashboards/event-organizer/EventOrganizerTransactions";
 
 export const router = createBrowserRouter([
   {
@@ -103,10 +101,6 @@ export const router = createBrowserRouter([
         element: <CustomerPoints />,
       },
       {
-        path: "reviews",
-        element: <CustomerReview />,
-      },
-      {
         path: "profile",
         element: <ProfileUser />,
       },
@@ -159,10 +153,6 @@ export const router = createBrowserRouter([
       {
         path: "users",
         element: <AdminManageUsers />,
-      },
-      {
-        path: "events",
-        element: <AdminManageEvents />,
       },
       {
         path: "categories",

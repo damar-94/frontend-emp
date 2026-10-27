@@ -11,6 +11,7 @@ import EditEventDialog from "./components/EditEventDialog";
 import GuestListDialog from "./components/GuestListDialog";
 import VoucherEventDialog from "./components/VoucherEventDialog";
 import { useCategories } from "@/hooks/API/category/useGetCategories";
+import { useDebounceValue } from "usehooks-ts";
 
 type OrganizerEvent = FindOrganizerEvents["data"][number];
 
@@ -37,13 +38,22 @@ function getEventStatus(startDate: string, endDate: string) {
 }
 
 export default function EventOrganizerMyEvents() {
-  const { data, isPending, isError, refetch } = useFindMyEvents();
+  const [page, setPage] = useState(1);
+  const take = 6;
+
   const { data: categories = [] } = useCategories();
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch] = useDebounceValue(search, 700);
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
   const [selectedEventForEdit, setSelectedEventForEdit] =
     useState<OrganizerEvent | null>(null);
+
+  const { data, isPending, isError, refetch } = useFindMyEvents({
+    page,
+    take,
+    search: debouncedSearch,
+  });
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -51,6 +61,7 @@ export default function EventOrganizerMyEvents() {
   const [isVoucherDialogOpen, setIsVoucherDialogOpen] = useState(false);
 
   const organizerEvents = data?.data ?? [];
+  const totalPages = data?.meta.totalPages ?? 0;
 
   const events: EventItem[] = organizerEvents.map((event) => ({
     id: event.id,
@@ -68,10 +79,6 @@ export default function EventOrganizerMyEvents() {
     endDate: event.endDate,
   }));
 
-  const filteredEvents = events.filter((event) =>
-    event.name.toLowerCase().includes(search.toLowerCase()),
-  );
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -84,7 +91,7 @@ export default function EventOrganizerMyEvents() {
 
         <Link
           to="/event-creation"
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-pink-600 px-4 text-sm font-medium text-white transition-colors hover:bg-pink-700"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#f4917b] px-4 text-sm font-medium text-white transition-colors hover:bg-[#df7d67] "
         >
           <Plus className="h-4 w-4" />
           Create Event
@@ -96,9 +103,12 @@ export default function EventOrganizerMyEvents() {
         <input
           type="text"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setPage(1);
+          }}
           placeholder="Search events by name..."
-          className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-pink-500"
+          className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e] focus-visible:ring-2"
         />
       </div>
 
@@ -123,7 +133,7 @@ export default function EventOrganizerMyEvents() {
       ) : (
         <>
           <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {filteredEvents.map((event) => {
+            {events.map((event) => {
               const status = getEventStatus(event.startDate, event.endDate);
               const soldPercentage =
                 event.totalTickets > 0
@@ -173,13 +183,13 @@ export default function EventOrganizerMyEvents() {
                         <Ticket className="h-4 w-4 shrink-0" />
                         {event.ticketsSold.toLocaleString("id-ID")} /{" "}
                         {event.totalTickets.toLocaleString("id-ID")} tickets
-                        sold
+                        booked
                       </p>
                     </div>
 
                     <div className="h-2 overflow-hidden rounded-full bg-muted">
                       <div
-                        className="h-full rounded-full bg-pink-600"
+                        className="h-full rounded-full bg-[#f4917b]"
                         style={{ width: `${soldPercentage}%` }}
                       />
                     </div>
@@ -241,18 +251,44 @@ export default function EventOrganizerMyEvents() {
             })}
           </div>
 
-          {filteredEvents.length === 0 && (
+          {events.length === 0 && (
             <div className="rounded-xl border border-dashed p-10 text-center">
               <p className="font-medium">
-                {events.length === 0 ? "No events yet" : "No events found"}
+                {debouncedSearch.trim() ? "No events found" : "No events yet"}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {events.length === 0
-                  ? "Create an event to see it here."
-                  : "Try a different event name."}
+                {debouncedSearch.trim()
+                  ? "Try a different event name."
+                  : "Create an event to see it here."}
               </p>
             </div>
           )}
+
+          <div className="flex flex-col gap-3 border-t px-5 py-4 sm:flex-row sm:items-center justify-end">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={page <= 1 || isPending}
+                onClick={() => setPage((current) => current - 1)}
+                className="rounded-md border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Previous
+              </button>
+
+              <span className="text-sm">
+                {totalPages === 0 ? 0 : page} / {totalPages}
+              </span>
+
+              <button
+                type="button"
+                disabled={page >= totalPages || isPending || totalPages === 0}
+                onClick={() => setPage((current) => current + 1)}
+                className="rounded-md border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </>
       )}
 
@@ -262,12 +298,6 @@ export default function EventOrganizerMyEvents() {
         onOpenChange={(open) => {
           setIsDeleteDialogOpen(open);
           if (!open) setSelectedEvent(null);
-        }}
-        onConfirm={(eventId) => {
-          // Penghapusan dari database belum dihubungkan.
-          console.log("Delete event:", eventId);
-          setSelectedEvent(null);
-          setIsDeleteDialogOpen(false);
         }}
       />
 

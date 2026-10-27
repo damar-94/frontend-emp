@@ -1,20 +1,19 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import type { ReactNode } from "react";
+import { useLocation } from "react-router";
 
 interface DashboardLayoutProps {
   sidebar: ReactNode;
   children: ReactNode;
 }
 
-export function DashboardLayout({
-  sidebar,
-  children,
-}: DashboardLayoutProps) {
+export function DashboardLayout({ sidebar, children }: DashboardLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const location = useLocation();
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-[#fbf7f4]">
       {/* Sidebar */}
       <aside
         className={`${
@@ -41,7 +40,9 @@ export function DashboardLayout({
           <span className="font-bold">EventTix</span>
         </header>
 
-        <main className="p-4 sm:p-6">{children}</main>
+        <main key={location.pathname} className="animate-slide-up p-4 sm:p-6">
+          {children}
+        </main>
       </div>
     </div>
   );

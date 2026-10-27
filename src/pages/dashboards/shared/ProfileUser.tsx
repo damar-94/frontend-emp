@@ -130,17 +130,17 @@ export function ProfileUser() {
               {user?.email}
             </p>
 
-            <span className="mt-1 inline-block rounded-full bg-pink-100 px-2 py-0.5 text-xs font-medium text-pink-700">
+            <span className="mt-1 inline-block rounded-full bg-pink-50 px-2 py-0.5 text-xs font-medium text-[#f4917b]">
               {user?.role}
             </span>
           </div>
 
           <div className="ml-0 flex shrink-0 items-center gap-2 border-l pl-4">
-            <Coins className="h-5 w-5 text-pink-600" />
+            <Coins className="h-5 w-5 text-[#f4917b]" />
 
             <div>
               <p className="text-xs text-muted-foreground">Points</p>
-              <p className="font-bold text-pink-600">{user?.points}</p>
+              <p className="font-bold text-[#f4917b]">{user?.points}</p>
             </div>
           </div>
         </CardContent>
@@ -169,7 +169,7 @@ export function ProfileUser() {
 
             <Button
               type="submit"
-              className="bg-pink-600 hover:bg-pink-700"
+              className="bg-[#f4917b] hover:bg-[#df7d67]"
               disabled={uploadProfilePictureMutation.isPending || !selectedFile}
             >
               {uploadProfilePictureMutation.isPending
@@ -187,7 +187,8 @@ export function ProfileUser() {
           >
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
-              <Input id="name" {...registerName("name")} />
+              <Input id="name" {...registerName("name")} 
+              className="focus:outline-none focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e] focus-visible:ring-2"/>
 
               {nameErrors.name && (
                 <p className="text-sm text-red-500">
@@ -198,7 +199,7 @@ export function ProfileUser() {
 
             <Button
               type="submit"
-              className="bg-pink-600 hover:bg-pink-700"
+              className="bg-[#f4917b] hover:bg-[#df7d67]"
               disabled={updateNameMutation.isPending}
             >
               {updateNameMutation.isPending ? "Saving Name..." : "Save Name"}
