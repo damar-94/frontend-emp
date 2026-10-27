@@ -206,7 +206,7 @@ export function CustomerTransactions() {
             onClick={() => handleStatusChange(status)}
             className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
               statusFilter === status
-                ? "bg-gray-900 text-white"
+                ? "bg-[#f4917b] text-white"
                 : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
             }`}
           >

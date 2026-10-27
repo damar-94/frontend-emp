@@ -49,20 +49,14 @@ export function EventOrganizerReviews() {
   const debouncedSearch = useDebounce(search, 400);
 
   // 2. Fetch paginated & filtered reviews via TanStack Query
-  const {
-    data,
-    isLoading,
-    isFetching,
-    isPlaceholderData,
-    error,
-    refetch,
-  } = useOrganizerReviewsQuery({
-    page,
-    take: PAGE_TAKE,
-    search: debouncedSearch,
-    event: eventFilter,
-    rating: ratingFilter,
-  });
+  const { data, isLoading, isFetching, isPlaceholderData, error, refetch } =
+    useOrganizerReviewsQuery({
+      page,
+      take: PAGE_TAKE,
+      search: debouncedSearch,
+      event: eventFilter,
+      rating: ratingFilter,
+    });
 
   const reviews = data?.reviews ?? [];
   const organizerEvents = data?.events ?? [];
@@ -119,9 +113,7 @@ export function EventOrganizerReviews() {
           disabled={isFetching}
           className="gap-2 self-start sm:self-auto"
         >
-          <RefreshCw
-            className={`size-4 ${isFetching ? "animate-spin" : ""}`}
-          />
+          <RefreshCw className={`size-4 ${isFetching ? "animate-spin" : ""}`} />
           Refresh
         </Button>
       </div>
@@ -158,7 +150,7 @@ export function EventOrganizerReviews() {
             <p className="text-sm font-medium text-muted-foreground">
               Total Reviews
             </p>
-            <MessageSquare className="size-5 text-pink-600" />
+            <MessageSquare className="size-5 text-[#f4917b]" />
           </div>
           <p className="mt-3 text-2xl font-bold">{totalReviews}</p>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -191,13 +183,13 @@ export function EventOrganizerReviews() {
                 placeholder="Search customer, event, or comment..."
                 value={search}
                 onChange={handleSearchChange}
-                className="pl-9"
+                className="pl-9 focus:outline-none focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e] focus-visible:ring-2"
               />
             </div>
 
             {/* Filter by Event */}
             <Select value={eventFilter} onValueChange={handleEventFilterChange}>
-              <SelectTrigger className="w-full lg:w-64">
+              <SelectTrigger className="w-full lg:w-64 focus:border-[#f4917b] focus:border-3">
                 <SelectValue placeholder="Filter by event" />
               </SelectTrigger>
               <SelectContent>
@@ -215,7 +207,7 @@ export function EventOrganizerReviews() {
               value={ratingFilter}
               onValueChange={handleRatingFilterChange}
             >
-              <SelectTrigger className="w-full lg:w-44">
+              <SelectTrigger className="w-full lg:w-44 focus:border-[#f4917b] focus:border-3">
                 <SelectValue placeholder="Filter by rating" />
               </SelectTrigger>
               <SelectContent>
