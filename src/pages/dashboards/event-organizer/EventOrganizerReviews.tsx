@@ -1,12 +1,15 @@
 import {
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   MessageSquare,
   RefreshCw,
   Search,
   Star,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { axiosInstance } from "@/lib/axios";
+import { useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useOrganizerReviewsQuery } from "@/hooks/useReviewQueries";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { PaginationMeta } from "@/types/pagination.types";
 
 export interface Review {
   id: number;
@@ -26,6 +30,8 @@ export interface Review {
   reviewDate: string;
 }
 
+const PAGE_TAKE = 5;
+
 const formatDate = (date: string) =>
   new Date(date).toLocaleDateString("id-ID", {
     day: "2-digit",
@@ -34,76 +40,65 @@ const formatDate = (date: string) =>
   });
 
 export function EventOrganizerReviews() {
-  // 1. Regular React state for reviews, organizer event names, loading, and filters
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [organizerEvents, setOrganizerEvents] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
+  // 1. Client UI state (active page & filter inputs)
+  const [page, setPage] = useState<number>(1);
   const [search, setSearch] = useState("");
   const [eventFilter, setEventFilter] = useState("ALL");
   const [ratingFilter, setRatingFilter] = useState("ALL");
 
-  // 2. Pure async function to fetch all reviews for the logged-in organizer's events
-  const fetchOrganizerReviews = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setErrorMsg(null);
-      const res = await axiosInstance.get("/reviews/organizer");
-      const data = res.data?.data;
+  const debouncedSearch = useDebounce(search, 400);
 
-      setReviews(data?.reviews || []);
-      setOrganizerEvents(data?.events || []);
-    } catch (err: any) {
-      setErrorMsg(
-        err.response?.data?.message || "Failed to load customer reviews."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  // 2. Fetch paginated & filtered reviews via TanStack Query
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isPlaceholderData,
+    error,
+    refetch,
+  } = useOrganizerReviewsQuery({
+    page,
+    take: PAGE_TAKE,
+    search: debouncedSearch,
+    event: eventFilter,
+    rating: ratingFilter,
+  });
 
-  useEffect(() => {
-    fetchOrganizerReviews();
-  }, [fetchOrganizerReviews]);
+  const reviews = data?.reviews ?? [];
+  const organizerEvents = data?.events ?? [];
+  const averageRating = data?.averageRating ?? 0;
+  const totalReviews = data?.totalReviews ?? 0;
 
-  // 3. Build Event Filter options from both the organizer's events and reviewed event names
-  const eventOptions = useMemo(() => {
-    const namesFromReviews = reviews.map((review) => review.eventName);
-    return [...new Set([...organizerEvents, ...namesFromReviews])];
-  }, [organizerEvents, reviews]);
+  // Matches all 6 required properties of PaginationMeta
+  const meta: PaginationMeta = data?.meta ?? {
+    page: 1,
+    take: PAGE_TAKE,
+    total: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+  };
 
-  // 4. Filter by search, event, and rating, AND sort by newest reviewDate first
-  const filteredReviews = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
+  const errorMsg =
+    (error as any)?.response?.data?.message ||
+    (error as Error)?.message ||
+    null;
 
-    return [...reviews]
-      .sort(
-        (a, b) =>
-          new Date(b.reviewDate).getTime() - new Date(a.reviewDate).getTime()
-      )
-      .filter((review) => {
-        const matchesSearch =
-          review.customerName.toLowerCase().includes(keyword) ||
-          review.eventName.toLowerCase().includes(keyword) ||
-          review.comment.toLowerCase().includes(keyword);
+  // Handlers that reset to page 1 when filters change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setPage(1);
+  };
 
-        const matchesEvent =
-          eventFilter === "ALL" || review.eventName === eventFilter;
+  const handleEventFilterChange = (value: string | null) => {
+    setEventFilter(value ?? "ALL");
+    setPage(1);
+  };
 
-        const matchesRating =
-          ratingFilter === "ALL" || review.rating === Number(ratingFilter);
-
-        return matchesSearch && matchesEvent && matchesRating;
-      });
-  }, [reviews, search, eventFilter, ratingFilter]);
-
-  // 5. Overall Average Rating across ALL reviews for this organizer
-  const averageRating =
-    reviews.length > 0
-      ? reviews.reduce((total, review) => total + review.rating, 0) /
-        reviews.length
-      : 0;
+  const handleRatingFilterChange = (value: string | null) => {
+    setRatingFilter(value ?? "ALL");
+    setPage(1);
+  };
 
   return (
     <div className="space-y-6">
@@ -112,18 +107,21 @@ export function EventOrganizerReviews() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Review Content</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            View customer feedback and ratings for your events (sorted by newest).
+            View customer feedback and ratings for your events (sorted by
+            newest).
           </p>
         </div>
 
         <Button
           variant="outline"
           size="sm"
-          onClick={fetchOrganizerReviews}
-          disabled={isLoading}
+          onClick={() => refetch()}
+          disabled={isFetching}
           className="gap-2 self-start sm:self-auto"
         >
-          <RefreshCw className={`size-4 ${isLoading ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`size-4 ${isFetching ? "animate-spin" : ""}`}
+          />
           Refresh
         </Button>
       </div>
@@ -162,7 +160,7 @@ export function EventOrganizerReviews() {
             </p>
             <MessageSquare className="size-5 text-pink-600" />
           </div>
-          <p className="mt-3 text-2xl font-bold">{reviews.length}</p>
+          <p className="mt-3 text-2xl font-bold">{totalReviews}</p>
           <p className="mt-1 text-xs text-muted-foreground">
             Customer reviews across your events
           </p>
@@ -190,24 +188,21 @@ export function EventOrganizerReviews() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search customer or event..."
+                placeholder="Search customer, event, or comment..."
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={handleSearchChange}
                 className="pl-9"
               />
             </div>
 
             {/* Filter by Event */}
-            <Select
-              value={eventFilter}
-              onValueChange={(value) => setEventFilter(value ?? "ALL")}
-            >
+            <Select value={eventFilter} onValueChange={handleEventFilterChange}>
               <SelectTrigger className="w-full lg:w-64">
                 <SelectValue placeholder="Filter by event" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Events</SelectItem>
-                {eventOptions.map((eventName) => (
+                {organizerEvents.map((eventName) => (
                   <SelectItem key={eventName} value={eventName}>
                     {eventName}
                   </SelectItem>
@@ -218,7 +213,7 @@ export function EventOrganizerReviews() {
             {/* Filter by Star Rating */}
             <Select
               value={ratingFilter}
-              onValueChange={(value) => setRatingFilter(value ?? "ALL")}
+              onValueChange={handleRatingFilterChange}
             >
               <SelectTrigger className="w-full lg:w-44">
                 <SelectValue placeholder="Filter by rating" />
@@ -236,13 +231,17 @@ export function EventOrganizerReviews() {
         </div>
 
         {/* Reviews Feed */}
-        <div className="divide-y">
+        <div
+          className={`divide-y transition-opacity duration-200 ${
+            isPlaceholderData ? "opacity-60" : "opacity-100"
+          }`}
+        >
           {isLoading ? (
             <div className="px-5 py-12 text-center text-sm text-muted-foreground">
               Loading reviews...
             </div>
-          ) : filteredReviews.length > 0 ? (
-            filteredReviews.map((review) => (
+          ) : reviews.length > 0 ? (
+            reviews.map((review) => (
               <article
                 key={review.id}
                 className="p-5 transition-colors hover:bg-muted/20"
@@ -293,8 +292,63 @@ export function EventOrganizerReviews() {
           )}
         </div>
 
-        <div className="border-t px-5 py-4 text-sm text-muted-foreground">
-          Showing {filteredReviews.length} of {reviews.length} reviews
+        {/* Footer & Backend Pagination Controls */}
+        <div className="flex flex-col items-center justify-between gap-4 border-t bg-gray-50/50 px-5 py-4 sm:flex-row">
+          <p className="text-xs text-muted-foreground">
+            Showing page{" "}
+            <span className="font-semibold text-foreground">{meta.page}</span>{" "}
+            of{" "}
+            <span className="font-semibold text-foreground">
+              {meta.totalPages}
+            </span>{" "}
+            ({meta.total} matching reviews)
+          </p>
+
+          {meta.totalPages > 1 && (
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={!meta.hasPrevPage || isPlaceholderData}
+                className="h-8 gap-1 px-2.5 text-xs"
+              >
+                <ChevronLeft className="size-3.5" />
+                Prev
+              </Button>
+
+              {Array.from({ length: meta.totalPages }, (_, i) => i + 1).map(
+                (pageNum) => (
+                  <button
+                    key={pageNum}
+                    type="button"
+                    onClick={() => setPage(pageNum)}
+                    disabled={isPlaceholderData}
+                    className={`h-8 w-8 rounded-md text-xs font-semibold transition ${
+                      meta.page === pageNum
+                        ? "bg-gray-900 text-white"
+                        : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                ),
+              )}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setPage((prev) => Math.min(meta.totalPages, prev + 1))
+                }
+                disabled={!meta.hasNextPage || isPlaceholderData}
+                className="h-8 gap-1 px-2.5 text-xs"
+              >
+                Next
+                <ChevronRight className="size-3.5" />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>
