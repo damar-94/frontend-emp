@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/carousel";
 import { axiosInstance } from "@/lib/axios";
 import type { EventModel } from "@/types/event.types";
+import { useQuery } from "@tanstack/react-query";
 import { Calendar, ChevronRight, Loader2, MapPin, Ticket } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
@@ -17,62 +18,53 @@ interface CategoryItem {
 }
 
 export function EventBrowsingSection() {
-  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [categoryId, setCategoryId] = useState<number>(0);
   const [location, setLocation] = useState<string>("All Locations");
   const [locations, setLocations] = useState<string[]>(["All Locations"]);
-  const [events, setEvents] = useState<EventModel[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
 
-  // 1. Fetch Categories dynamically from database
+  // 1. Fetch Categories dynamically via TanStack Query (shares cache with Navbar)
+  const { data: categories = [] } = useQuery<CategoryItem[]>({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const res = await axiosInstance.get("/categories");
+      return Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res.data)
+          ? res.data
+          : [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // 2. Fetch Events based on active categoryId & location filters via TanStack Query
+  const { data: eventsResponse, isPending: loading } = useQuery<{
+    data: EventModel[];
+    meta?: { locations?: string[] };
+  }>({
+    queryKey: ["events", "browsing-section", { categoryId, location }],
+    queryFn: async () => {
+      const params: Record<string, any> = {};
+      if (categoryId !== 0) params.categoryId = categoryId;
+      if (location !== "All Locations") params.location = location;
+
+      const res = await axiosInstance.get("/events", { params });
+      return res.data;
+    },
+  });
+
+  const events = eventsResponse?.data || [];
+
+  // Extract unique locations from backend meta or loaded events
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await axiosInstance.get("/categories");
-        const list = Array.isArray(res.data?.data)
-          ? res.data.data
-          : Array.isArray(res.data)
-            ? res.data
-            : [];
-        setCategories(list);
-      } catch (err) {
-        console.error("Failed to fetch categories:", err);
-      }
-    };
-
-    fetchCategories();
-  }, []);
-
-  // 2. Fetch Events based on active filters
-  useEffect(() => {
-    const fetchEvents = async () => {
-      setLoading(true);
-      try {
-        const params: any = {};
-        if (categoryId !== 0) params.categoryId = categoryId;
-        if (location !== "All Locations") params.location = location;
-
-        const res = await axiosInstance.get("/events", { params });
-        setEvents(res.data.data || []);
-      } catch (err) {
-        console.error("Failed to retrieve events:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEvents();
-  }, [categoryId, location]);
-
-  // Extract unique locations from events
-  useEffect(() => {
-    if (location === "All Locations" && events.length > 0) {
+    if (eventsResponse?.meta?.locations?.length) {
+      setLocations(["All Locations", ...eventsResponse.meta.locations]);
+    } else if (location === "All Locations" && events.length > 0) {
       const uniqueCities = Array.from(
-        new Set(events.map((event) => event.location))
+        new Set(events.map((event) => event.location)),
       ).filter(Boolean);
       setLocations(["All Locations", ...uniqueCities]);
     }
-  }, [events, location]);
+  }, [events, eventsResponse?.meta?.locations, location]);
 
   const formatIDR = (val: number): string => {
     if (val === 0) return "Free";
@@ -103,7 +95,8 @@ export function EventBrowsingSection() {
             Exciting Events Await You
           </h2>
           <p className="text-sm text-slate-500 mt-1">
-            Discover concert tickets, creative workshops, and festivals near you.
+            Discover concert tickets, creative workshops, and festivals near
+            you.
           </p>
         </div>
 
