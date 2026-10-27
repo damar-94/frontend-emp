@@ -3,6 +3,8 @@ import { Navbar } from "@/components/Navbar";
 import { axiosInstance } from "@/lib/axios";
 import type { EventModel } from "@/types/event.types";
 import type { UserCoupon } from "@/types/transaction.types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { AxiosError } from "axios";
 import {
   Calendar,
   Coins,
@@ -11,13 +13,12 @@ import {
   Plus,
   Tag,
   Ticket,
+  UserCheck,
 } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { AxiosError } from "axios";
 
 // 1. Match UserRole type with schema.prisma (including ADMIN)
 type UserRole = "CUSTOMER" | "EVENTORGANIZER" | "ADMIN" | null;
@@ -282,9 +283,12 @@ export const EventDetailPage: React.FC = () => {
     );
   }
 
-  // ============================================================================
-  // PRICE CALCULATIONS FOLLOWING RULES c, d, f, g, h, j, n, o
-  // ============================================================================
+  // Extract Organizer ID, Name, and Profile Picture from event.user
+  const organizer = (event as any).user;
+  const organizerId: number | undefined =
+    organizer?.id ?? (event as any).userId;
+  const organizerName: string = organizer?.name || "Event Organizer";
+
   const subtotalIDR = event.ticketTypes.reduce((acc, ticket) => {
     const qty = selectedTickets[ticket.id || 0] || 0;
     return acc + ticket.price * qty;
@@ -349,9 +353,6 @@ export const EventDetailPage: React.FC = () => {
   // Final net price in IDR
   const finalTotalIDR = Math.max(0, afterCouponIDR - pointsDiscountIDR);
 
-  // ============================================================================
-  // SUBMIT TRANSACTION (Rule a: Only CUSTOMERS can purchase tickets)
-  // ============================================================================
   const handleCheckoutSubmit = () => {
     if (totalSelectedTickets === 0) {
       toast.warning("Please select at least 1 ticket first.");
@@ -422,6 +423,21 @@ export const EventDetailPage: React.FC = () => {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-amber-800 mt-1">
                 {event.name}
               </h1>
+
+              {/* Created by Organizer Name */}
+              {organizerId && (
+                <div className="mt-3 inline-block">
+                  <div className="text-left">
+                    <p className="text-[11px] text-slate-400 leading-none">
+                      Created by
+                    </p>
+                    <p className="text-xs font-bold text-slate-800 group-hover:text-[#f4917b] transition-colors flex items-center gap-1 mt-0.5">
+                      <UserCheck className="w-3.5 h-3.5 text-[#f4917b]" />
+                      <span>{organizerName}</span>
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-4 text-xs sm:text-sm text-slate-600">
