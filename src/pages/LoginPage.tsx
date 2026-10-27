@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import useLogin from "@/hooks/API/auth/useLogin";
 import { loginSchema, type LoginSchema } from "@/schemas_2/userAuth";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { EyeClosedIcon, EyeIcon } from "@hugeicons/core-free-icons";
+import { Eye, EyeClosedIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -23,16 +23,14 @@ const LoginPage = () => {
 
   return (
     <div
-      className="flex min-h-screen items-center justify-center bg-repeat px-4 bg-[#fbf7f4]"
-      style={{
-        backgroundImage: "url('/bg-login-page.jpg')",
-      }}
+      className="flex min-h-screen items-center justify-center bg-repeat px-4 bg-[#fbf7f4] "
+
     >
       <div className="w-full max-w-md rounded-[3rem_1.5rem_3rem_1.5rem] bg-white p-8 shadow-xl border border-[#f4917b]/30">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold">
             <span className="text-[#3d312e]">Let’s get the </span>
-            <span className="text-[#f7542f]">fun</span>{" "}
+            <span className="text-[#f4917b]">fun</span>{" "}
             <span className="text-[#5a8a83]">started!</span>
           </h1>
 
@@ -63,7 +61,7 @@ const LoginPage = () => {
               type="email"
               {...register("email")}
               placeholder="iga@example.com"
-              className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] border-[#f4917b]/60 text-[#3d312e]"
+              className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e]"
             />
             {formState.errors.email && (
               <p className="text-red-600 text-sm font-medium">
@@ -87,7 +85,7 @@ const LoginPage = () => {
                 type={showPassword ? "text" : "password"}
                 {...register("password")}
                 placeholder="•••••••••••••••"
-                className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] border-[#f4917b]/60 text-[#3d312e]"
+                className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e]"
               />
               <Button
                 variant="ghost"
@@ -96,7 +94,7 @@ const LoginPage = () => {
                 onClick={() => setShowPassword(!showPassword)}
               >
                 <HugeiconsIcon
-                  icon={showPassword ? EyeIcon : EyeClosedIcon}
+                  icon={showPassword ? Eye : EyeClosedIcon}
                   size={24}
                   color="currentColor"
                   strokeWidth={1.5}
@@ -115,7 +113,7 @@ const LoginPage = () => {
             <Button
               type="submit"
               disabled={isPending}
-              className="w-full bg-[#f7542f] text-white hover:bg-[#df7d67] font-medium"
+              className="w-full bg-[#f4917b] text-white hover:bg-[#df7d67] font-medium"
             >
               {isPending ? "Loading" : "Submit"}
             </Button>
@@ -124,7 +122,7 @@ const LoginPage = () => {
 
             <Link
               to="/forgot-password"
-              className="w-full text-[#f7542f] hover:text-[#df7d67] text-sm text-center font-medium"
+              className="w-full text-[#f4917b] hover:text-[#df7d67] text-sm text-center font-medium"
             >
               Forgotten Password
             </Link>
@@ -135,7 +133,7 @@ const LoginPage = () => {
           First time here?{" "}
           <Link
             to="/register"
-            className="font-medium text-[#f7542f] hover:text-[#df7d67]"
+            className="font-medium text-[#f4917b] hover:text-[#df7d67]"
           >
             Come join us!
           </Link>

@@ -44,7 +44,7 @@ export function AdminOverview() {
         <div className="rounded-xl border bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500">Total Customers</p>
-            <Users className="h-5 w-5 text-gray-400" />
+            <Users className="h-5 w-5 text-[#f4917b]" />
           </div>
 
           {/* Total Customer dari database */}
@@ -61,7 +61,7 @@ export function AdminOverview() {
         <div className="rounded-xl border bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500">Total Events</p>
-            <CalendarDays className="h-5 w-5 text-gray-400" />
+            <CalendarDays className="h-5 w-5 text-[#f4917b]" />
           </div>
 
           <p className="mt-3 text-3xl font-bold">
@@ -77,7 +77,7 @@ export function AdminOverview() {
         <div className="rounded-xl border bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500">Total Categories</p>
-            <Tags className="h-5 w-5 text-gray-400" />
+            <Tags className="h-5 w-5 text-[#f4917b]" />
           </div>
 
           <p className="mt-3 text-3xl font-bold">
@@ -93,7 +93,7 @@ export function AdminOverview() {
         <div className="rounded-xl border bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500">Total Organizers</p>
-            <UserRound className="h-5 w-5 text-gray-400" />
+            <UserRound className="h-5 w-5 text-[#f4917b]" />
           </div>
 
           <p className="mt-3 text-3xl font-bold">

@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useDebounce } from "../hooks/useDebounce";
 import { axiosInstance } from "@/lib/axios";
 import { useAuth } from "@/stores/useAuth";
+import { useNavigate } from "react-router";
 import type { EventModel } from "@/types/event.types";
 
 interface CategoryItem {
@@ -25,6 +26,7 @@ interface NavbarProps {
 }
 
 export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -119,6 +121,7 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
       e.preventDefault();
       if (logout) {
         logout();
+        navigate("/")
       }
     }
   };
@@ -277,7 +280,7 @@ export function Navbar({ onSearch, onSelectCategory }: NavbarProps) {
           <a
             href={isLoggedIn ? "#" : "/login"}
             onClick={handleAuthAction}
-            className="flex items-center gap-2 bg-[#f4917b] hover:bg-[#ffc7b9] text-[#222432] text-xs sm:text-sm font-semibold px-4 py-2 rounded-full shadow-sm transition active:scale-95 cursor-pointer"
+            className="flex items-center gap-2 bg-[#f4917b] hover:bg-[#ffc7b9] text-[white] text-xs sm:text-sm font-semibold px-4 py-2 rounded-full shadow-sm transition active:scale-95 cursor-pointer"
           >
             {isLoggedIn ? (
               <>

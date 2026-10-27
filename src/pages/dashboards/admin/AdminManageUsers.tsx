@@ -1,16 +1,19 @@
+import { Button } from "@/components/ui/button";
 import { useGetUsers } from "@/hooks/API/dashboard/adminDasboard/useGetUsers";
 import { useState } from "react";
+import { useDebounceValue } from "usehooks-ts";
 
 type UserRole = "ALL" | "ADMIN" | "EVENTORGANIZER" | "CUSTOMER";
 
 export function AdminManageUsers() {
   const [search, setSearch] = useState("");
+  const [debouncedSearch] = useDebounceValue(search, 700)
   const [roleFilter, setRoleFilter] = useState<UserRole>("ALL");
   const [page, setPage] = useState(1);
 
   const { data, isPending, isError } = useGetUsers({
     page,
-    search,
+    search: debouncedSearch,
     role: roleFilter,
   });
 
@@ -72,7 +75,7 @@ export function AdminManageUsers() {
               placeholder="Search users..."
               value={search}
               onChange={(event) => handleSearchChange(event.target.value)}
-              className="rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-300"
+              className="rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:outline-none focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e] focus-visible:ring-2"
             />
 
             <select
@@ -80,7 +83,7 @@ export function AdminManageUsers() {
               onChange={(event) =>
                 handleRoleChange(event.target.value as UserRole)
               }
-              className="rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-300"
+              className="rounded-md border px-3 py-2 text-sm outline-none focus:outline-none focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e] focus-visible:ring-2"
             >
               <option value="ALL">All Roles</option>
               <option value="ADMIN">Admin</option>
@@ -149,31 +152,30 @@ export function AdminManageUsers() {
           </table>
         </div>
 
-        <div className="mt-4 flex flex-col gap-3 justify-center items-center sm:flex-row sm:items-center sm:justify-center">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              disabled={currentPage <= 1 || isPending}
+        {/* Server-side Pagination */}
+        <div className="flex flex-col gap-3 border-t px-5 py-4 sm:flex-row sm:items-center justify-end">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1 || isPending}
               onClick={() => setPage((current) => current - 1)}
-              className="rounded-md border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
               Previous
-            </button>
+            </Button>
 
-            <span className="text-sm text-gray-600">
-              Page {currentPage} of {Math.max(totalPages, 1)}
+            <span className="text-sm">
+              {totalPages === 0 ? 0 : currentPage} / {totalPages}
             </span>
 
-            <button
-              type="button"
-              disabled={
-                currentPage >= totalPages || isPending || totalPages === 0
-              }
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages || isPending || totalPages === 0}
               onClick={() => setPage((current) => current + 1)}
-              className="rounded-md border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
               Next
-            </button>
+            </Button>
           </div>
         </div>
       </div>

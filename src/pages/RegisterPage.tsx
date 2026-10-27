@@ -7,10 +7,14 @@ import {
   type RegisterUserSchema,
 } from "@/schemas_2/userAuth";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeClosedIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router";
 
 function RegisterPage() {
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const { register, handleSubmit, formState } = useForm<RegisterUserSchema>({
     resolver: zodResolver(registerUserSchema),
   });
@@ -22,24 +26,19 @@ function RegisterPage() {
   };
 
   return (
-    <div
-      className="flex min-h-screen items-center justify-center bg-repeat px-4 py-8 bg-[#fbf7f4]"
-      style={{
-        backgroundImage: "url('/bg-login-page.jpg')",
-      }}
-    >
+    <div className="flex min-h-screen items-center justify-center bg-repeat px-4 py-8 bg-[#fbf7f4]">
       <div className="w-full max-w-md rounded-[3rem_1.5rem_3rem_1.5rem] bg-white p-8 shadow-xl border border-[#f4917b]/30">
         {/* Header */}
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold">
             <span className="text-[#3d312e]">Let’s </span>
-            <span className="text-[#f7542f]">get you</span>{" "}
+            <span className="text-[#f4917b]">get you</span>{" "}
             <span className="text-[#5a8a83]">started!</span>
           </h1>
 
           <p className="mt-2 text-sm text-[#3d312e]">
             Create an account,{" "}
-            <span className="font-medium text-[#f7542f]">discover</span> new
+            <span className="font-medium text-[#f4917b]">discover</span> new
             events, and{" "}
             <span className="font-medium text-[#5a8a83]">have fun.</span>
           </p>
@@ -65,7 +64,7 @@ function RegisterPage() {
               placeholder="Iga Massardi"
               type="text"
               {...register("name")}
-              className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] border-[#f4917b]/60 text-[#3d312e]"
+              className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b]  text-[#3d312e]"
             />
 
             {formState.errors.name && (
@@ -89,7 +88,7 @@ function RegisterPage() {
               placeholder="ikanbelida@example.com"
               type="email"
               {...register("email")}
-              className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] border-[#f4917b]/60 text-[#3d312e]"
+              className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e]"
             />
 
             {formState.errors.email && (
@@ -108,13 +107,28 @@ function RegisterPage() {
               Password
             </Label>
 
-            <Input
-              id="password"
-              placeholder="••••••••"
-              type="password"
-              {...register("password")}
-              className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] border-[#f4917b]/60 text-[#3d312e]"
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                {...register("password")}
+                placeholder="•••••••••••••••"
+                className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] focus:outline-none text-[#3d312e]"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-0"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                <HugeiconsIcon
+                  icon={showPassword ? Eye : EyeClosedIcon}
+                  size={24}
+                  color="currentColor"
+                  strokeWidth={1.5}
+                />
+              </Button>
+            </div>
 
             {formState.errors.password && (
               <p className="text-sm text-red-600 font-medium">
@@ -134,7 +148,7 @@ function RegisterPage() {
 
             <select
               id="role"
-              className="box-border block h-10 w-full min-w-0 max-w-full rounded-md border border-[#f4917b]/60 bg-white px-3 py-2 text-sm text-[#3d312e] outline-none focus:border-[#f4917b] focus:ring-2 focus:ring-[#f4917b]/20"
+              className="box-border block h-10 w-full min-w-0 max-w-full rounded-md border bg-white px-3 py-2 text-sm text-[#3d312e] outline-none focus:border-[#f4917b] focus:ring-2 focus:ring-[#f4917b] focus:ring-offset-0"
               {...register("role")}
             >
               <option value="CUSTOMER">Customer</option>
@@ -156,7 +170,7 @@ function RegisterPage() {
               placeholder="Enter referral code"
               type="text"
               {...register("referralCode")}
-              className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] border-[#f4917b]/60 text-[#3d312e]"
+              className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e]"
             />
           </div>
 
@@ -164,7 +178,7 @@ function RegisterPage() {
           <Button
             type="submit"
             disabled={isPending}
-            className="w-full bg-[#f7542f] text-white hover:bg-[#df7d67] font-medium"
+            className="w-full bg-[#f4917b] text-white hover:bg-[#df7d67] font-medium"
           >
             {isPending ? "Loading" : "Register"}
           </Button>
@@ -174,7 +188,7 @@ function RegisterPage() {
           Already have an account?{" "}
           <Link
             to="/login"
-            className="font-medium text-[#f7542f] hover:text-[#df7d67]"
+            className="font-medium text-[#f4917b] hover:text-[#df7d67]"
           >
             Come back!
           </Link>

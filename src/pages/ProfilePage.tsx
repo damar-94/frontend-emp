@@ -150,17 +150,17 @@ function ProfilePage() {
                 {user?.email}
               </p>
 
-              <span className="mt-1 inline-block rounded-full bg-pink-100 px-2 py-0.5 text-xs font-medium text-pink-700">
+              <span className="mt-1 inline-block rounded-full bg-pink-100 px-2 py-0.5 text-xs font-medium text-[#f4917b]">
                 {user?.role}
               </span>
             </div>
 
             <div className="flex shrink-0 items-center gap-2 border-l pl-4">
-              <Coins className="h-5 w-5 text-pink-600" />
+              <Coins className="h-5 w-5 text-[#f4917b]" />
 
               <div>
                 <p className="text-xs text-muted-foreground">Points</p>
-                <p className="font-bold text-pink-600">{user?.points}</p>
+                <p className="font-bold text-[#f4917b]">{user?.points}</p>
               </div>
             </div>
           </CardContent>
@@ -189,7 +189,7 @@ function ProfilePage() {
 
               <Button
                 type="submit"
-                className="bg-pink-600 hover:bg-pink-700"
+                className="bg-[#f4917b] hover:bg-[#df7d67]"
                 disabled={
                   uploadProfilePictureMutation.isPending || !selectedFile
                 }
@@ -221,7 +221,7 @@ function ProfilePage() {
 
               <Button
                 type="submit"
-                className="bg-pink-600 hover:bg-pink-700"
+                className="bg-[#f4917b] hover:bg-[#df7d67]"
                 disabled={updateNameMutation.isPending}
               >
                 {updateNameMutation.isPending ? "Saving Name..." : "Save Name"}
@@ -314,7 +314,7 @@ function ProfilePage() {
 
               <Button
                 variant="link"
-                className="h-auto p-0 text-pink-600"
+                className="h-auto p-0 text-[#f4917b]"
                 onClick={() => window.location.assign("/forgot-password")}
               >
                 Reset Password

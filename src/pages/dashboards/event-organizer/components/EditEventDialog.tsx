@@ -382,6 +382,7 @@ export default function EditEventDialog({
               value={form.name}
               onChange={(e) => handleChange("name", e.target.value)}
               required
+              className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] border-input text-[#3d312e]"
             />
           </div>
 
@@ -394,7 +395,7 @@ export default function EditEventDialog({
               value={form.categoryId}
               onChange={(e) => handleChange("categoryId", e.target.value)}
               required
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] border-input text-[#3d312e] focus-visible:ring-2 "
             >
               <option value="" disabled>
                 Select a category
@@ -417,7 +418,7 @@ export default function EditEventDialog({
               onChange={(e) => handleChange("description", e.target.value)}
               required
               rows={4}
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] border-input text-[#3d312e] flex w-full rounded-md border  bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 "
             />
           </div>
 
@@ -430,7 +431,7 @@ export default function EditEventDialog({
               value={form.provinceId}
               onChange={(e) => handleProvinceChange(e.target.value)}
               required
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] border-input text-[#3d312e] focus-visible:ring-2"
             >
               <option value="" disabled>
                 Select a province
@@ -458,7 +459,7 @@ export default function EditEventDialog({
               onChange={(e) => handleChange("cityName", e.target.value)}
               required
               disabled={!form.provinceId || cities.length === 0}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] border-input text-[#3d312e] focus-visible:ring-2"
             >
               <option value="" disabled>
                 {!form.provinceId
@@ -483,7 +484,7 @@ export default function EditEventDialog({
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="event-thumbnail" className="text-sm font-medium">
+            <label htmlFor="event-thumbnail" className="text-sm font-medium ">
               Event Image
             </label>
             <Input
@@ -491,6 +492,7 @@ export default function EditEventDialog({
               type="file"
               accept="image/jpeg,image/png,image/webp"
               onChange={handleThumbnailChange}
+              className="focus:outline-none focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] border-input text-[#3d312e] focus-visible:ring-2"
             />
             <p className="text-xs text-muted-foreground">
               JPG, PNG, or WebP. Maximum size: 5 MB. Leave empty to keep the
@@ -515,6 +517,7 @@ export default function EditEventDialog({
               value={form.totalSeat}
               onChange={(e) => handleChange("totalSeat", e.target.value)}
               required
+              className="focus:outline-none focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] border-input text-[#3d312e] focus-visible:ring-2"
             />
             <p className="text-xs text-muted-foreground">
               Capacity cannot be less than {event?.totalSeat ?? 0}.
@@ -537,6 +540,7 @@ export default function EditEventDialog({
               value={form.startDate}
               onChange={(e) => handleChange("startDate", e.target.value)}
               required
+              className="focus:outline-none focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] border-input text-[#3d312e] focus-visible:ring-2"
             />
           </div>
 
@@ -551,6 +555,7 @@ export default function EditEventDialog({
               onChange={(e) => handleChange("endDate", e.target.value)}
               min={form.startDate || undefined}
               required
+              className="focus:outline-none focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] border-input text-[#3d312e] focus-visible:ring-2"
             />
             {endDateInvalid && (
               <p className="text-sm text-destructive">
@@ -573,6 +578,7 @@ export default function EditEventDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={updateEvent.isPending}
+              className="text-[#f4917b] "
             >
               Cancel
             </Button>
@@ -592,7 +598,9 @@ export default function EditEventDialog({
                 endDateInvalid ||
                 totalSeatInvalid ||
                 Boolean(fileError)
+                
               }
+              className="bg-[#f4917b] "
             >
               {updateEvent.isPending
                 ? "Uploading and saving..."

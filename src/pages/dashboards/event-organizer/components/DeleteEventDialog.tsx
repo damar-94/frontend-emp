@@ -9,30 +9,39 @@ import {
 
 import { Button } from "@/components/ui/button";
 
-import type { EventItem } from "./EditEventDialog";
+import { useDeleteEvent } from "@/hooks/API/dashboard/organizerDashboard/useDeleteEvent";
 
 interface DeleteEventDialogProps {
-  event: EventItem | null;
+  event: { id: number; name: string } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (eventId: number) => void;
 }
 
 export default function DeleteEventDialog({
   event,
   open,
   onOpenChange,
-  onConfirm,
 }: DeleteEventDialogProps) {
+  const deleteEvent = useDeleteEvent(event?.id ?? 0);
+
   const handleConfirm = () => {
     if (!event) return;
 
-    onConfirm(event.id);
-    onOpenChange(false);
+    deleteEvent.mutate(undefined, {
+      onSuccess: () => {
+        onOpenChange(false);
+      },
+    });
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (deleteEvent.isPending) return;
+        onOpenChange(nextOpen);
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Delete Event</DialogTitle>
@@ -41,7 +50,7 @@ export default function DeleteEventDialog({
             <span className="font-semibold text-foreground">
               {event?.name ?? "this event"}
             </span>
-            ? This action cannot be undone.
+            ? This event will be hidden from your event list.
           </DialogDescription>
         </DialogHeader>
 
@@ -58,9 +67,9 @@ export default function DeleteEventDialog({
             type="button"
             variant="destructive"
             onClick={handleConfirm}
-            disabled={!event}
+            disabled={!event || deleteEvent.isPending}
           >
-            Delete Event
+            {deleteEvent.isPending ? "Deleting..." : "Delete Event"}
           </Button>
         </DialogFooter>
       </DialogContent>

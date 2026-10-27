@@ -28,8 +28,8 @@ function ResetPasswordPage() {
     },
   });
 
-  const[searchParams]=useSearchParams();
-  const token = searchParams.get("token")
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token");
 
   const { mutate, isPending } = useResetPassword(token!);
 
@@ -38,18 +38,13 @@ function ResetPasswordPage() {
   };
 
   return (
-    <div
-      className="flex min-h-screen items-center justify-center bg-repeat px-4 bg-[#fbf7f4]"
-      style={{
-        backgroundImage: "url('/bg-login-page.jpg')",
-      }}
-    >
+    <div className="flex min-h-screen items-center justify-center bg-repeat px-4 bg-[#fbf7f4]">
       <div className="w-full max-w-md rounded-[3rem_1.5rem_3rem_1.5rem] bg-white p-8 shadow-xl border border-[#f4917b]/30">
         {/* Header */}
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold">
             <span className="text-[#3d312e]">Reset </span>
-            <span className="text-[#f7542f]">Password</span>
+            <span className="text-[#f4917b]">Password</span>
           </h1>
 
           <p className="mt-2 text-sm leading-relaxed text-[#3d312e]">
@@ -75,7 +70,7 @@ function ResetPasswordPage() {
                 placeholder="Your new password"
                 autoComplete="off"
                 aria-invalid={!!errors.password}
-                className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] border-[#f4917b]/60 text-[#3d312e]"
+                className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e]"
               />
               <Button
                 variant="ghost"
@@ -113,7 +108,7 @@ function ResetPasswordPage() {
                 placeholder="Confirm your new password"
                 autoComplete="off"
                 aria-invalid={!!errors.confirmPassword}
-                className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] border-[#f4917b]/60 text-[#3d312e]"
+                className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e]"
               />
               <Button
                 variant="ghost"
@@ -141,7 +136,7 @@ function ResetPasswordPage() {
           <Button
             type="submit"
             disabled={isPending}
-            className="w-full bg-[#f7542f] text-white hover:bg-[#df7d67] font-medium"
+            className="w-full bg-[#f4917b] text-white hover:bg-[#df7d67] font-medium"
           >
             {isPending ? "Loading..." : "Send Reset Link"}
             Reset Password

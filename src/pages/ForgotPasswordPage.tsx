@@ -25,29 +25,28 @@ function ForgotPassword() {
   };
 
   return (
-    <div
-      className="flex min-h-screen items-center justify-center bg-repeat px-4 bg-[#fbf7f4]"
-      style={{
-        backgroundImage: "url('/bg-login-page.jpg')",
-      }}
-    >
+    <div className="flex min-h-screen items-center justify-center bg-repeat px-4 bg-[#fbf7f4]">
       <div className="w-full max-w-md rounded-[3rem_1.5rem_3rem_1.5rem] bg-white p-8 shadow-xl border border-[#f4917b]/30">
         {/* Header */}
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold">
             <span className="text-[#3d312e]">Forgot </span>
-            <span className="text-[#f7542f]">Password</span>
+            <span className="text-[#f4917b]">Password</span>
             <span className="text-[#5a8a83]">?</span>
           </h1>
 
           <p className="mt-2 text-sm leading-relaxed text-[#3d312e]">
-            Enter your email address and we will send you a link to reset
-            your password.
+            Enter your email address and we will send you a link to reset your
+            password.
           </p>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="space-y-4"
+          noValidate
+        >
           <div className="space-y-2">
             <label
               htmlFor="email"
@@ -63,7 +62,7 @@ function ForgotPassword() {
               placeholder="Your Email"
               autoComplete="email"
               aria-invalid={!!errors.email}
-              className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] border-[#f4917b]/60 text-[#3d312e]"
+              className="focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e]"
             />
 
             {errors.email && (
@@ -77,7 +76,7 @@ function ForgotPassword() {
           <Button
             type="submit"
             disabled={isPending}
-            className="w-full bg-[#f7542f] text-white hover:bg-[#df7d67] font-medium"
+            className="w-full bg-[#f4917b] text-white hover:bg-[#df7d67] font-medium"
           >
             {isPending ? "Loading..." : "Send Reset Link"}
           </Button>
@@ -88,7 +87,7 @@ function ForgotPassword() {
           Remember your password?{" "}
           <Link
             to="/login"
-            className="font-medium text-[#f7542f] hover:text-[#df7d67]"
+            className="font-medium text-[#f4917b] hover:text-[#df7d67]"
           >
             Back to Login
           </Link>

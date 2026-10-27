@@ -1,3 +1,4 @@
+import type { LucideIcon } from "lucide-react";
 import {
   Check,
   CircleCheck,
@@ -9,30 +10,24 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
-import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
-import { useGetTotalPendingPayment } from "@/hooks/API/dashboard/organizerDashboard/useGetTotalPendingPayment";
 import { useGetTotalDonePayment } from "@/hooks/API/dashboard/organizerDashboard/useGetTotalDonePayment";
+import { useGetTotalPendingPayment } from "@/hooks/API/dashboard/organizerDashboard/useGetTotalPendingPayment";
 import { useGetTotalRejectedPayment } from "@/hooks/API/dashboard/organizerDashboard/useGetTotalRejectedPayment";
 
+import useApproveTransaction from "@/hooks/API/dashboard/organizerDashboard/useApproveTransaction";
+import { useGetOrganizerTransactions } from "@/hooks/API/dashboard/organizerDashboard/useGetTableTransactions";
+import { useRejectTransaction } from "@/hooks/API/dashboard/organizerDashboard/useRejectTransaction";
 import type {
   OrganizerTransaction,
   TransactionStatusFilter,
 } from "@/types/dashboard";
-import { useGetOrganizerTransactions } from "@/hooks/API/dashboard/organizerDashboard/useGetTableTransactions";
-import useApproveTransaction from "@/hooks/API/dashboard/organizerDashboard/useApproveTransaction";
-import { useRejectTransaction } from "@/hooks/API/dashboard/organizerDashboard/useRejectTransaction";
+import { useDebounceValue } from "usehooks-ts";
+import { useGetTotalTransactions } from "@/hooks/API/dashboard/organizerDashboard/useGetTotalTransactions";
 
 type TransactionStatus = "WAITING_FOR_ADMIN_CONFIRMATION" | "DONE" | "REJECTED";
 
@@ -50,28 +45,28 @@ const summaryCards: SummaryCard[] = [
     title: "Total Transactions",
     description: "All recorded transactions",
     icon: Receipt,
-    iconColor: "text-pink-600",
+    iconColor: "text-[#f4917b]",
   },
   {
     key: "pending",
     title: "Pending Confirmation",
     description: "Awaiting payment review",
     icon: Clock,
-    iconColor: "text-amber-600",
+    iconColor: "text-[#f4917b]",
   },
   {
     key: "done",
     title: "Approved",
     description: "Approved transactions",
     icon: CircleCheck,
-    iconColor: "text-emerald-600",
+    iconColor: "text-[#f4917b]",
   },
   {
     key: "rejected",
     title: "Rejected",
     description: "Transactions not approved",
     icon: CircleX,
-    iconColor: "text-red-600",
+    iconColor: "text-[#f4917b]",
   },
 ];
 
@@ -106,7 +101,14 @@ const statusLabels: Record<TransactionStatus, string> = {
 };
 
 export default function EventOrganizerTransactions() {
-  // Summary cards: hooks tetap dipertahankan.
+  // Summary cards: hooks tetap dipertahankan
+
+  const {
+    data: totalTransactions,
+    isPending: totalTransactionsPending,
+    isError: totalTransactionsError,
+  } = useGetTotalTransactions();
+
   const {
     data: totalPendingPayment,
     isPending: totalPendingPaymentPending,
@@ -132,6 +134,7 @@ export default function EventOrganizerTransactions() {
 
   // State untuk server-side search, filter, dan pagination.
   const [search, setSearch] = useState("");
+  const [debouncedSearch] = useDebounceValue(search, 700);
   const [statusFilter, setStatusFilter] =
     useState<TransactionStatusFilter>("ALL");
   const [page, setPage] = useState(1);
@@ -144,7 +147,7 @@ export default function EventOrganizerTransactions() {
   } = useGetOrganizerTransactions({
     page,
     take,
-    search,
+    search: debouncedSearch,
     status: statusFilter,
   });
 
@@ -187,7 +190,7 @@ export default function EventOrganizerTransactions() {
   const totalPages = meta?.totalPages ?? Math.ceil((meta?.total ?? 0) / take);
 
   const summaryValues: Record<SummaryCard["key"], number> = {
-    total: meta?.total ?? 0,
+    total: totalTransactions ?? 0,
     pending: totalPendingPayment ?? 0,
     done: totalDonePayment ?? 0,
     rejected: totalRejectedPayment ?? 0,
@@ -209,22 +212,26 @@ export default function EventOrganizerTransactions() {
           const Icon = card.icon;
 
           const isLoading =
-            card.key === "pending"
-              ? totalPendingPaymentPending
-              : card.key === "done"
-                ? totalDonePaymentPending
-                : card.key === "rejected"
-                  ? totalRejectedPaymentPending
-                  : transactionsPending;
+            card.key === "total"
+              ? totalTransactionsPending
+              : card.key === "pending"
+                ? totalPendingPaymentPending
+                : card.key === "done"
+                  ? totalDonePaymentPending
+                  : card.key === "rejected"
+                    ? totalRejectedPaymentPending
+                    : transactionsPending;
 
           const hasError =
-            card.key === "pending"
-              ? totalPendingPaymentError
-              : card.key === "done"
-                ? totalDonePaymentError
-                : card.key === "rejected"
-                  ? totalRejectedPaymentError
-                  : transactionsError;
+            card.key === "total"
+              ? totalTransactionsError
+              : card.key === "pending"
+                ? totalPendingPaymentError
+                : card.key === "done"
+                  ? totalDonePaymentError
+                  : card.key === "rejected"
+                    ? totalRejectedPaymentError
+                    : transactionsError;
 
           const value = isLoading
             ? "Loading..."
@@ -276,221 +283,229 @@ export default function EventOrganizerTransactions() {
                 placeholder="Search transaction ID, customer, or event..."
                 value={search}
                 onChange={(event) => handleSearchChange(event.target.value)}
-                className="pl-9"
+                className="pl-9 focus:outline-none border-input focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e] focus-visible:ring-2"
               />
             </div>
 
-            <Select value={statusFilter} onValueChange={handleStatusChange}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-
-              <SelectContent>
-                <SelectItem value="ALL">All Statuses</SelectItem>
-                <SelectItem value="WAITING_FOR_ADMIN_CONFIRMATION">
-                  Pending
-                </SelectItem>
-                <SelectItem value="DONE">Approved</SelectItem>
-                <SelectItem value="REJECTED">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
+            <select
+              value={statusFilter}
+              onChange={(event) => handleStatusChange(event.target.value)}
+              className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs outline-none sm:w-48 focus:outline-none focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e] focus-visible:ring-2"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="WAITING_FOR_ADMIN_CONFIRMATION">Pending</option>
+              <option value="DONE">Approved</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
           </div>
-        </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-262.5 text-left text-sm">
-            <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="px-5 py-4 font-medium">Transaction</th>
-                <th className="px-5 py-4 font-medium">Customer</th>
-                <th className="px-5 py-4 font-medium">Event</th>
-                <th className="px-5 py-4 text-center font-medium">Tickets</th>
-                <th className="px-5 py-4 font-medium">Total Payment</th>
-                <th className="px-5 py-4 font-medium">Status</th>
-                <th className="px-5 py-4 text-right font-medium">Actions</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y">
-              {transactionsPending ? (
+          {/* Table */}
+          <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
+            <table className="w-full min-w-262.5 text-left text-sm">
+              <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center">
-                    Loading transactions...
-                  </td>
+                  <th className="px-5 py-4 font-medium">Transaction</th>
+                  <th className="px-5 py-4 font-medium">Customer</th>
+                  <th className="px-5 py-4 font-medium">Event</th>
+                  <th className="px-5 py-4 text-center font-medium">Tickets</th>
+                  <th className="px-5 py-4 font-medium">Total Payment</th>
+                  <th className="px-5 py-4 font-medium">Status</th>
+                  <th className="px-5 py-4 text-right font-medium">Actions</th>
                 </tr>
-              ) : transactionsError ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-5 py-12 text-center text-red-600"
-                  >
-                    Failed to load transactions. Please try again.
-                  </td>
-                </tr>
-              ) : transactions.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center">
-                    <Search className="mx-auto size-8 text-muted-foreground/50" />
-                    <p className="mt-3 font-medium">No transactions found</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Try changing your search or status filter.
-                    </p>
-                  </td>
-                </tr>
-              ) : (
-                transactions.map((transaction) => (
-                  <tr
-                    key={transaction.id}
-                    className="transition-colors hover:bg-muted/20"
-                  >
-                    <td className="px-5 py-4">
-                      <p className="font-semibold">#{transaction.id}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {formatDate(transaction.transactionDate)}
-                      </p>
-                    </td>
+              </thead>
 
-                    <td className="px-5 py-4">
-                      <p className="font-medium">{transaction.customerName}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {transaction.customerEmail}
-                      </p>
-                    </td>
-
-                    <td className="max-w-48 px-5 py-4">
-                      <p className="truncate font-medium">
-                        {transaction.eventName}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {formatDate(transaction.eventDate)}
-                      </p>
-                    </td>
-
-                    <td className="px-5 py-4 text-center">
-                      {transaction.ticketQuantity}
-                    </td>
-
-                    <td className="whitespace-nowrap px-5 py-4 font-semibold">
-                      {formatCurrency(transaction.totalPayment)}
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                          statusStyles[transaction.status as TransactionStatus]
-                        }`}
-                      >
-                        {statusLabels[transaction.status as TransactionStatus]}
-                      </span>
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          title="View payment proof"
-                          onClick={() => openProofDialog(transaction)}
-                        >
-                          <Eye className="mr-2 size-4" />
-                          View Proof
-                        </Button>
-
-                        {transaction.status ===
-                          "WAITING_FOR_ADMIN_CONFIRMATION" && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="Approve transaction"
-                              className="text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
-                              disabled={approveTransactionPending}
-                              onClick={() => approveTransaction(transaction.id)}
-                            >
-                              <Check className="size-4" />
-                            </Button>
-
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="Reject transaction"
-                              disabled={rejectTransactionPending}
-                              className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                              onClick={() => rejectTransaction(transaction.id)}
-                            >
-                              <X className="size-4" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
+              <tbody className="divide-y">
+                {transactionsPending ? (
+                  <tr>
+                    <td colSpan={7} className="px-5 py-12 text-center">
+                      Loading transactions...
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ) : transactionsError ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-5 py-12 text-center text-red-600"
+                    >
+                      Failed to load transactions. Please try again.
+                    </td>
+                  </tr>
+                ) : transactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-5 py-12 text-center">
+                      <Search className="mx-auto size-8 text-muted-foreground/50" />
+                      <p className="mt-3 font-medium">No transactions found</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Try changing your search or status filter.
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  transactions.map((transaction) => (
+                    <tr
+                      key={transaction.id}
+                      className="transition-colors hover:bg-muted/20"
+                    >
+                      <td className="px-5 py-4">
+                        <p className="font-semibold">#{transaction.id}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {formatDate(transaction.transactionDate)}
+                        </p>
+                      </td>
 
-        {/* Server-side Pagination */}
-        <div className="flex flex-col gap-3 border-t px-5 py-4 sm:flex-row sm:items-center justify-end">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1 || transactionsPending}
-              onClick={() => setPage((current) => current - 1)}
-            >
-              Previous
-            </Button>
+                      <td className="px-5 py-4">
+                        <p className="font-medium">
+                          {transaction.customerName}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {transaction.customerEmail}
+                        </p>
+                      </td>
 
-            <span className="text-sm">
-              {totalPages === 0 ? 0 : page } / {totalPages}
-              {/* Page {page} of {Math.max(1, totalPages)} */}
-            </span>
+                      <td className="max-w-48 px-5 py-4">
+                        <p className="truncate font-medium">
+                          {transaction.eventName}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {formatDate(transaction.eventDate)}
+                        </p>
+                      </td>
 
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={
-                page >= totalPages || transactionsPending || totalPages === 0
-              }
-              onClick={() => setPage((current) => current + 1)}
-            >
-              Next
-            </Button>
+                      <td className="px-5 py-4 text-center">
+                        {transaction.ticketQuantity}
+                      </td>
+
+                      <td className="whitespace-nowrap px-5 py-4 font-semibold">
+                        {formatCurrency(transaction.totalPayment)}
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                            statusStyles[
+                              transaction.status as TransactionStatus
+                            ]
+                          }`}
+                        >
+                          {
+                            statusLabels[
+                              transaction.status as TransactionStatus
+                            ]
+                          }
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            title="View payment proof"
+                            onClick={() => openProofDialog(transaction)}
+                          >
+                            <Eye className="mr-2 size-4" />
+                            View Proof
+                          </Button>
+
+                          {transaction.status ===
+                            "WAITING_FOR_ADMIN_CONFIRMATION" && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Approve transaction"
+                                className="text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+                                disabled={approveTransactionPending}
+                                onClick={() =>
+                                  approveTransaction(transaction.id)
+                                }
+                              >
+                                <Check className="size-4" />
+                              </Button>
+
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Reject transaction"
+                                disabled={rejectTransactionPending}
+                                className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                                onClick={() =>
+                                  rejectTransaction(transaction.id)
+                                }
+                              >
+                                <X className="size-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Server-side Pagination */}
+          <div className="flex flex-col gap-3 border-t px-5 py-4 sm:flex-row sm:items-center sm:justify-end">
+            <div className="flex items-center gap-2 justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1 || transactionsPending}
+                onClick={() => setPage((current) => current - 1)}
+              >
+                Previous
+              </Button>
+
+              <span className="text-sm">
+                {totalPages === 0 ? 0 : page} / {totalPages}
+                {/* Page {page} of {Math.max(1, totalPages)} */}
+              </span>
+
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={
+                  page >= totalPages || transactionsPending || totalPages === 0
+                }
+                onClick={() => setPage((current) => current + 1)}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Payment Proof Dialog */}
-      <Dialog
-        open={isProofDialogOpen}
-        onOpenChange={(open) => {
-          if (!open) closeProofDialog();
-        }}
-      >
-        <DialogContent
-          className="max-h-[90vh] overflow-y-auto p-4 sm:max-w-2xl"
-          showCloseButton={true}
+        {/* Payment Proof Dialog */}
+        <Dialog
+          open={isProofDialogOpen}
+          onOpenChange={(open) => {
+            if (!open) closeProofDialog();
+          }}
         >
-          {selectedTransaction && (
-            <div className="flex justify-center">
-              {selectedTransaction.paymentProof ? (
-                <img
-                  src={selectedTransaction.paymentProof}
-                  alt={`Payment proof for transaction ${selectedTransaction.id}`}
-                  className="max-h-[80vh] w-auto max-w-full rounded-md object-contain"
-                />
-              ) : (
-                <p className="py-10 text-sm text-muted-foreground">
-                  Payment proof is not available for this transaction.
-                </p>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          <DialogContent
+            className="max-h-[90vh] overflow-y-auto p-4 sm:max-w-2xl"
+            showCloseButton={true}
+          >
+            {selectedTransaction && (
+              <div className="flex justify-center">
+                {selectedTransaction.paymentProof ? (
+                  <img
+                    src={selectedTransaction.paymentProof}
+                    alt={`Payment proof for transaction ${selectedTransaction.id}`}
+                    className="max-h-[80vh] w-auto max-w-full rounded-md object-contain"
+                  />
+                ) : (
+                  <p className="py-10 text-sm text-muted-foreground">
+                    Payment proof is not available for this transaction.
+                  </p>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }

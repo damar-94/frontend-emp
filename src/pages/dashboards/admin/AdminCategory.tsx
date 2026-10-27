@@ -157,7 +157,7 @@ export const AdminCategory = () => {
         {/* Dialog Add Category */}
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger>
-            <Button className="shrink-0 bg-pink-600 text-white hover:bg-pink-700">
+            <Button className="shrink-0 bg-[#f4917b] text-white hover:bg-[#df7d67]">
               Add Category
             </Button>
           </DialogTrigger>
@@ -179,6 +179,7 @@ export const AdminCategory = () => {
                   placeholder="e.g. Music"
                   {...register("name")}
                   disabled={createCategory.isPending}
+                  className="focus:outline-none focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e] focus-visible:ring-2"
                 />
 
                 {errors.name && (
@@ -192,11 +193,13 @@ export const AdminCategory = () => {
                   variant="outline"
                   onClick={() => setOpen(false)}
                   disabled={createCategory.isPending}
+                  className="text-[#f4917b]"
                 >
                   Cancel
                 </Button>
 
-                <Button type="submit" disabled={createCategory.isPending}>
+                <Button type="submit" disabled={createCategory.isPending}
+                className="bg-[#f4917b]">
                   {createCategory.isPending ? "Creating..." : "Create Category"}
                 </Button>
               </div>

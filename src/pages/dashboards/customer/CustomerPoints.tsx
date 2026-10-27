@@ -1,40 +1,22 @@
+import { Button } from "@/components/ui/button";
+import { useGetCustomerHistoryPoints } from "@/hooks/API/dashboard/customerDashboard/useGetHistoryPoints";
+import { useGetCustomerPoints } from "@/hooks/API/dashboard/customerDashboard/useGetTotalPoints";
+import type { PointsHistory } from "@/types/dashboard";
 import { Clock, Coins, History } from "lucide-react";
 import { useState } from "react";
 
-type PointLot = {
-  id: number;
-  amount: number;
-  remainingAmount: number;
-  creditedAt: string;
-  expiresAt: string;
-};
-
-const pointLots: PointLot[] = [
-  {
-    id: 1,
-    amount: 10000,
-    remainingAmount: 7000,
-    creditedAt: "2026-09-20T10:00:00.000Z",
-    expiresAt: "2026-12-20T10:00:00.000Z",
-  },
-  {
-    id: 2,
-    amount: 15000,
-    remainingAmount: 15000,
-    creditedAt: "2026-10-01T10:00:00.000Z",
-    expiresAt: "2027-01-01T10:00:00.000Z",
-  },
-  {
-    id: 3,
-    amount: 5000,
-    remainingAmount: 0,
-    creditedAt: "2026-06-10T10:00:00.000Z",
-    expiresAt: "2026-09-10T10:00:00.000Z",
-  },
-];
-
 export function CustomerPoints() {
-  const [history] = useState<PointLot[]>(pointLots);
+  const [page, setPage] = useState(1);
+  const take = 5;
+
+  const {
+    data: history,
+    isLoading: isHistoryLoading,
+    isError: isHistoryError,
+  } = useGetCustomerHistoryPoints({
+    page,
+    take,
+  });
 
   const formatNumber = (value: number) =>
     new Intl.NumberFormat("id-ID").format(value);
@@ -48,14 +30,9 @@ export function CustomerPoints() {
 
   const now = Date.now();
 
-  // Total poin yang masih tersedia dan belum kedaluwarsa.
-  const totalAvailablePoints = history.reduce((total, point) => {
-    const isExpired = new Date(point.expiresAt).getTime() <= now;
+  const { data, isLoading, isError } = useGetCustomerPoints();
 
-    return total + (isExpired ? 0 : point.remainingAmount);
-  }, 0);
-
-  const getPointStatus = (point: PointLot) => {
+  const getPointStatus = (point: PointsHistory) => {
     if (new Date(point.expiresAt).getTime() <= now) {
       return {
         label: "Expired",
@@ -75,6 +52,9 @@ export function CustomerPoints() {
       className: "bg-green-100 text-green-700",
     };
   };
+
+  const pointsHistory = history?.data ?? [];
+  const meta = history?.meta;
 
   return (
     <div className="space-y-6">
@@ -97,7 +77,11 @@ export function CustomerPoints() {
             </p>
 
             <h2 className="mt-2 text-3xl font-bold text-gray-900">
-              {formatNumber(totalAvailablePoints)}
+              {isLoading
+                ? "Loading..."
+                : isError
+                  ? "Failed to load"
+                  : formatNumber(data ?? 0)}
             </h2>
 
             <p className="mt-2 text-sm text-gray-500">
@@ -106,7 +90,7 @@ export function CustomerPoints() {
           </div>
 
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
-            <Coins className="h-7 w-7 text-pink-600" />
+            <Coins className="h-7 w-7 text-[#f4917b]" />
           </div>
         </div>
       </div>
@@ -115,7 +99,7 @@ export function CustomerPoints() {
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="flex items-center gap-3 border-b border-gray-200 px-6 py-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-pink-50">
-            <History className="h-5 w-5 text-pink-600" />
+            <History className="h-5 w-5 text-[#f4917b]" />
           </div>
 
           <div>
@@ -126,7 +110,6 @@ export function CustomerPoints() {
             </p>
           </div>
         </div>
-
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-gray-200 bg-gray-50">
@@ -152,10 +135,27 @@ export function CustomerPoints() {
                 </th>
               </tr>
             </thead>
-
             <tbody className="divide-y divide-gray-100">
-              {history.length > 0 ? (
-                history.map((point) => {
+              {isHistoryLoading ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-6 py-12 text-center text-gray-500"
+                  >
+                    Loading points history...
+                  </td>
+                </tr>
+              ) : isHistoryError ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-6 py-12 text-center text-red-600"
+                  >
+                    Failed to load points history.
+                  </td>
+                </tr>
+              ) : pointsHistory.length > 0 ? (
+                pointsHistory.map((point) => {
                   const status = getPointStatus(point);
 
                   return (
@@ -208,6 +208,37 @@ export function CustomerPoints() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination */}
+        <div className="flex flex-col gap-3 border-t px-5 py-4 sm:flex-row sm:items-center justify-end">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1 || isHistoryLoading}
+              onClick={() => setPage((current) => current - 1)}
+            >
+              Previous
+            </Button>
+
+            <span className="text-sm">
+              {meta?.totalPages === 0 ? 0 : page} / {meta?.totalPages ?? 0}
+            </span>
+
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={
+                page >= (meta?.totalPages ?? 0) ||
+                isHistoryLoading ||
+                (meta?.totalPages ?? 0) === 0
+              }
+              onClick={() => setPage((current) => current + 1)}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       </div>
     </div>

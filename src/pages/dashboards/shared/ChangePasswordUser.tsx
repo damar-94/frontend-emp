@@ -9,7 +9,7 @@ import {
   type ChangePasswordSchema,
 } from "@/schemas_2/changePassword";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { EyeClosedIcon, EyeIcon } from "@hugeicons/core-free-icons";
+import { Eye, EyeClosedIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -66,6 +66,7 @@ export function ChangePasswordUser() {
                   type={showCurrentPassword ? "text" : "password"}
                   placeholder="Please enter your current password"
                   {...register("currentPassword")}
+                  className="focus:outline-none focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e] focus-visible:ring-2"
                 />
 
                 <Button
@@ -75,7 +76,7 @@ export function ChangePasswordUser() {
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                 >
                   <HugeiconsIcon
-                    icon={showCurrentPassword ? EyeIcon : EyeClosedIcon}
+                    icon={showCurrentPassword ? Eye : EyeClosedIcon}
                     size={24}
                     color="currentColor"
                     strokeWidth={1.5}
@@ -98,6 +99,7 @@ export function ChangePasswordUser() {
                   type={showNewPassword ? "text" : "password"}
                   placeholder="Please enter your new password"
                   {...register("newPassword")}
+                  className="focus:outline-none focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e] focus-visible:ring-2"
                 />
 
                 <Button
@@ -107,7 +109,7 @@ export function ChangePasswordUser() {
                   onClick={() => setShowNewPassword(!showNewPassword)}
                 >
                   <HugeiconsIcon
-                    icon={showNewPassword ? EyeIcon : EyeClosedIcon}
+                    icon={showNewPassword ? Eye : EyeClosedIcon}
                     size={24}
                     color="currentColor"
                     strokeWidth={1.5}
@@ -131,6 +133,7 @@ export function ChangePasswordUser() {
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Please confirm your new password"
                   {...register("confirmPassword")}
+                  className="focus:outline-none focus-visible:ring-[#f4917b] focus-visible:border-[#f4917b] text-[#3d312e] focus-visible:ring-2"
                 />
                 <Button
                   variant="ghost"
@@ -139,7 +142,7 @@ export function ChangePasswordUser() {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   <HugeiconsIcon
-                    icon={showConfirmPassword ? EyeIcon : EyeClosedIcon}
+                    icon={showConfirmPassword ? Eye : EyeClosedIcon}
                     size={24}
                     color="currentColor"
                     strokeWidth={1.5}
@@ -180,7 +183,7 @@ export function ChangePasswordUser() {
             <Button
               type="button"
               variant="link"
-              className="h-auto p-0 text-pink-600"
+              className="h-auto p-0 text-[#f4917b]"
               onClick={() => window.location.assign("/forgot-password")}
             >
               Reset Password
